@@ -1,0 +1,23 @@
+{
+  "pre-install": {
+  },
+  "apt": {
+  },
+  "pip3": {
+	"edilkamin" : {},
+	"pyudev" : {},
+	"setuptools" : {},
+    "pyserial" : {},
+    "requests" : {}
+  },
+  "npm": {
+  },
+  "composer": {
+  },
+  "yarn": {
+  },
+  "plugin": {
+  },
+  "post-install": {
+  }
+}
