@@ -38,6 +38,37 @@ function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $
     }
 }
 
+/*function createCmd($params)
+{
+    $cmd = $params['eqLogic']->getCmd(null, $params['commandName']);
+    if (!is_object($cmd)) {
+        $cmd = new jeedilkaminCmd();
+        $cmd->setOrder($params['order']);
+        $cmd->setName(__($params['commandDescription'], __FILE__));
+        $cmd->setEqLogic_id($eqLogic->getId());
+        $cmd->setLogicalId($params['commandName']);
+        $cmd->setType($params['type']);
+        $cmd->setSubType($params['subType']);
+        $cmd->setUnite($params['unite']);
+        if ($params['type'] == 'action') {
+            if ($params['tysubType'] == 'slider') {
+                $cmd->setConfiguration('minValue' , $params['minValue']);
+                $cmd->setConfiguration('maxValue' , $params['maxValue']);
+            }
+        } else {
+
+        }
+        $cmd->setValue($params['value']);
+        $cmd->setIsHistorized($params['isHistorized']);
+        if (!empty($params['template'])) { 
+            $cmd->setTemplate($params['template'][0], $params['template'][1]);
+        }
+        $cmd->save();
+        log::add('jeedilkamin', 'debug', 'Add command '. $cmd->getName() . ' (LogicalId : ' . $cmd->getLogicalId() . ')');
+        return $cmd;
+    }
+}*/
+
 try
 {
     require_once __DIR__ . "/../../../../core/php/core.inc.php";

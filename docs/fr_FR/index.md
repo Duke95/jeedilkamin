@@ -1,18 +1,42 @@
-# Plugin template
+# Plugin Jeedilkamin
 
-Ce "template de plugin" sert de base à la réalisation de plugins pour **Jeedom**.
+# Description
 
-La documentation générale relative à la conception de plugin est consultable [ici](https://doc.jeedom.com/fr_FR/dev/).
+Plugin permettant de contrôler les poëles Edilkamin via la librairie python [Edilkamin.py](https://github.com/AndreMiras/edilkamin.py).
 
-Dans le détail :   
-* [Utilisation du template de plugin](https://doc.jeedom.com/fr_FR/dev/plugin_template) : Le template de plugin est une base de plugin pour Jeedom qui doit être adaptée avec l'id de votre plugin et à laquelle il suffit d'ajouter vos propres fonctions.
+# Configuration du plugin
 
-* [Fichier info.json](https://doc.jeedom.com/fr_FR/dev/structure_info_json) : Intégré depuis la version 3.0 de Jeedom, le fichier **info.json** est obligatoire pour le bon fonctionnement des plugins et leur bon déploiement sur le Market Jeedom.
+Une fois le plugin installé, il faut renseigner vos informations de connexion Edilkamin :
 
-* [Icône du plugin](https://doc.jeedom.com/fr_FR/dev/Icone_de_plugin) : Afin de pouvoir être publié sur le Market Jeedom, tout plugin doit disposer d’une icône. Attention à ne pas utiliser le même code couleur que les icônes des plugins Jeedom officiels.
+-   **Adresse email** : Renseignez l'adresse email de l'application Edilkamin.
+-   **Mot de passe** : Renseignez le mot de passe de l'application Edilkamin.
 
-* [Widget du plugin](https://doc.jeedom.com/fr_FR/dev/widget_plugin) : Présentation des différentes manières d'inclure des widgets personnalisés au plugin.
+![jeedilkamin_configuration](../images/jeedilkamin_configuration.png)
 
-* [Documentation du plugin](https://doc.jeedom.com/fr_FR/dev/documentation_plugin) : Présentation de la mise en place d'une documentation car un bon plugin n'est rien sans documentation adéquate.
+# Configuration des équipements
 
-* [Publication du plugin](https://doc.jeedom.com/fr_FR/dev/publication_plugin) : Description des pré-requis indispensables à la publication du plugin.
+Vous retrouvez ici toute la configuration de votre équipement :
+
+-   **Nom de l’équipement** : nom de votre équipement Netatmo.
+-   **Objet parent** : indique l’objet parent auquel appartient l’équipement.
+-   **Catégorie** : Catégorie de l'équipement (Chauffage, Sécurité, Energie...).
+-   **Activer** : permet de rendre votre équipement actif.
+-   **Visible** : le rend visible sur le dashboard.
+-   **Adresse Mac** : Adresse mac de l'appareil.
+
+En dessous vous retrouvez la liste des commandes :
+
+-   le nom affiché sur le dashboard
+-   historiser : permet d’historiser la donnée
+-   configuration avancée (petites roues crantées) : permet d’afficher la configuration avancée de la commande (méthode d’historisation, widget…)
+-   Tester : permet de tester la commande
+
+> **ASTUCE**
+>
+> Le nombre de ventilateur est récupéré automatiquement à la première sauvegarde de votre équipement.
+
+# FAQ
+
+>**Quelle est la fréquence de rafraichissement ?**
+>
+>Le systeme recupère les informations toutes les 5 minutes.

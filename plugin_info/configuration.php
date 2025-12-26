@@ -34,7 +34,7 @@ if (!isConnect()) {
     </div>
     <div class="form-group">
       <label class="col-md-4 control-label">{{Mot de passe}}
-        <sup><i class="fas fa-question-circle tooltips" title="{{Renseignez le mot de passe de l'applicattionb Edilkamin}}"></i></sup>
+        <sup><i class="fas fa-question-circle tooltips" title="{{Renseignez le mot de passe de l'application Edilkamin}}"></i></sup>
       </label>
       <div class="col-md-4">
         <input type="password" class="configKey form-control" data-l1key="password" placeholder="********"/>
