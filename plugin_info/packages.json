@@ -7,8 +7,9 @@
 	"edilkamin" : {},
 	"pyudev" : {},
 	"setuptools" : {},
-    "pyserial" : {},
-    "requests" : {}
+  "pyserial" : {},
+  "requests" : {},
+  "PyJWT" : {}
   },
   "npm": {
   },

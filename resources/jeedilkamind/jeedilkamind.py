@@ -22,17 +22,42 @@ import signal
 import json
 import argparse
 import edilkamin
+import jwt
+import requests
 
 from jeedom.jeedom import jeedom_socket, jeedom_utils, jeedom_com, JEEDOM_SOCKET_MESSAGE  # jeedom_serial
 
+def validJWT():
+    logging.debug("Valid JWT")
+    COGNITO_REGION = "eu-central-1"
+    USER_POOL_ID = "eu-central-1_BYmQ2VBlo"
+
+    JWKS_URL = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
+
+    # 1. Récupérer les clés publiques
+    jwks = requests.get(JWKS_URL).json()
+
+    header = jwt.get_unverified_header(_token)
+    kid = header["kid"]
+    key = next(k for k in jwks["keys"] if k["kid"] == kid)
+    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+    try:
+        jwt.decode(_token, public_key, audience="7sc1qltkqobo3ddqsk4542dg2h", algorithms=["RS256"])
+        logging.info("Token valid")
+    except jwt.ExpiredSignatureError:
+        logging.info("Token expired")
+        login(_email,_password)
+    except Exception as e:
+        logging.error("ValidJWT: %s",e)
+
 def login(username, password):
     """Login and return token."""
+    global _token
     try:
         logging.debug("username : %s", username)
         logging.debug("password : %s", password)
-        token = edilkamin.sign_in(username, password)
+        _token = edilkamin.sign_in(username, password)
         logging.info("Logged in to Edilkamin API")
-        return token
     except Exception as e:
         logging.error("Login failed: %s",e)
     return None
@@ -41,6 +66,7 @@ def device_info(macaddress):
     try:
         logging.debug("macaddress : %s", macaddress)
         logging.debug("token : %s", _token)
+        validJWT()
         return json.dumps(edilkamin.device_info(_token, macaddress)).replace('\\', '')
     except Exception as e:      
         logging.error("[device_info]Login failed: %s",e)
@@ -133,7 +159,6 @@ _pidfile = '/tmp/demond.pid'
 _apikey = ''
 _callback = ''
 _cycle = 0.3
-_token = ''
 
 parser = argparse.ArgumentParser(description='Desmond Daemon for Jeedom plugin')
 parser.add_argument("--device", help="Device", type=str)
@@ -191,7 +216,7 @@ try:
         shutdown()
     # my_jeedom_serial = jeedom_serial(device=_device)  # if you need jeedom_serial
     my_jeedom_socket = jeedom_socket(port=_socket_port, address=_socket_host)
-    _token = login(_email,_password)
+    login(_email,_password)
     listen()
 except Exception as e:
     logging.error('Fatal error: %s', e)
