@@ -91,8 +91,10 @@ def refresh(info: dict):
     try:
         refresh_infos = {}
         refresh_infos['state'] = edilkamin.device_info_get_power(info).value
-        refresh_infos['fan1'] = edilkamin.device_info_get_fan_speed(info, 1)
-        refresh_infos['fan2'] = edilkamin.device_info_get_fan_speed(info, 2)
+        nbFans = info['nvm']['installer_parameters']['fans_number']
+        for i in range(nbFans):
+            logging.debug(i)
+            refresh_infos['fan'+str(i+1)] = edilkamin.device_info_get_fan_speed(info, i+1)
         refresh_infos['temperature'] = edilkamin.device_info_get_environment_temperature(info)
         refresh_infos['alarm_type'] = edilkamin.device_info_get_alarm_reset(info)
         refresh_infos['manual_power_level'] = edilkamin.device_info_get_manual_power_level(info)
@@ -136,7 +138,7 @@ def read_socket():
                 fanId = int(message['action'][-1])
                 logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
 
-            time.sleep(0.5)
+            time.sleep(1.0)
             info = device_info(message['macaddress'])
             forJeedom['infos'] = info
             forJeedom['refresh_infos'] = refresh(json.loads(info))
