@@ -136,6 +136,7 @@ def read_socket():
                 fanId = int(message['action'][-1])
                 logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
 
+            time.sleep(0.5)
             info = device_info(message['macaddress'])
             forJeedom['infos'] = info
             forJeedom['refresh_infos'] = refresh(json.loads(info))

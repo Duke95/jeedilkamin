@@ -28,8 +28,9 @@ function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $
         $cmd->setSubType($subType);
         if ($type == 'action') {
             if ($subType == 'slider') {
-                if (str_ends_with($commandName,'1')) {}
+                if (str_ends_with($commandName,'1')) {
                     $cmd->setConfiguration('minValue' , 1);
+                }
                 else {
                     $cmd->setConfiguration('minValue' , 0);
                 }
