@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
-function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $subType, $value = '', $unite = '', $isHistorized = 0, $template = [])
+function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $subType, $value = '', $fan_ventilation = 0, $unite = '', $isHistorized = 0, $template = [])
 {
     $cmd = $eqLogic->getCmd(null, $commandName);
     if (!is_object($cmd)) {
@@ -26,6 +26,16 @@ function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $
         $cmd->setLogicalId($commandName);
         $cmd->setType($type);
         $cmd->setSubType($subType);
+        if ($type == 'action') {
+            if ($subType == 'slider') {
+                if (str_ends_with($commandName,'1')) {}
+                    $cmd->setConfiguration('minValue' , 1);
+                else {
+                    $cmd->setConfiguration('minValue' , 0);
+                }
+                $cmd->setConfiguration('maxValue' , $fan_ventilation);
+            }
+        }
         $cmd->setUnite($unite);
         $cmd->setValue($value);
         $cmd->setIsHistorized($isHistorized);
@@ -93,7 +103,7 @@ try
         $edilkamin = eqLogic::byId($result['eqlogicid']);
         for ($i=1; $i<=$nbFans; $i++) {
             $id = createCmd($edilkamin, 'fan' . $i, 'Fan' . $i, $nbCmd + $i, 'info', 'string');
-            createCmd($edilkamin, 'fan_speed' . $i, 'Fan speed' . $i, $nbCmd + $i, 'action', 'slider', $id);
+            createCmd($edilkamin, 'fan_speed' . $i, 'Fan speed' . $i, $nbCmd + $i, 'action', 'slider', $id, $infos['nvm']['user_parameters']['fan_' . $i .'_ventilation']);
         }
     }
 

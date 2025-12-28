@@ -72,6 +72,21 @@ def device_info(macaddress):
         logging.error("[device_info]Login failed: %s",e)
     return None
 
+def loop_on_power(macaddress, forjeedom):
+    try:
+        while 1:
+            time.sleep(30.0)
+            info = device_info(macaddress)
+            logging.debug(info['status']['state']['stove_state'])
+            logging.debug(info['status']['state']['operational_phase'])
+            logging.debug(info['status']['state']['sub_operational_phase'])
+            if (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 0 and info['status']['state']['sub_operational_phase'] == 0 or info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 2 and info['status']['state']['sub_operational_phase'] == 2):
+                break
+            my_jeedom_com.send_change_immediate(forjeedom)
+    except Exception as e:      
+        logging.error("[loop_on_power]: %s",e)
+    return None
+
 def refresh(info: dict):
     try:
         refresh_infos = {}
@@ -82,6 +97,10 @@ def refresh(info: dict):
         refresh_infos['alarm_type'] = edilkamin.device_info_get_alarm_reset(info)
         refresh_infos['manual_power_level'] = edilkamin.device_info_get_manual_power_level(info)
         refresh_infos['pellet_autonomy_time'] = edilkamin.device_info_get_autonomy_time(info)
+        refresh_infos['actual_power'] = info['status']['state']['actual_power']
+        logging.debug(info['status']['state']['stove_state'])
+        logging.debug(info['status']['state']['operational_phase'])
+        logging.debug(info['status']['state']['sub_operational_phase'])
         return refresh_infos
     except Exception as e:
         logging.error('[Refresh] %s', e)
@@ -100,17 +119,26 @@ def read_socket():
                 raise Exception("Mac Address is empty!")
             
             forJeedom = {}
-            info = device_info(message['macaddress'])
-            forJeedom['infos'] = info
-            forJeedom['refresh_infos'] = refresh(json.loads(info))
             
+            logging.debug(message['action'])
             if (message['action'] == 'postSave'):
                 if (message['eqlogicid']):
                     forJeedom['eqlogicid'] = message['eqlogicid']
-                
                 if (message['countcmd']):
                     forJeedom['countcmd'] = message['countcmd']
-                
+            elif (message['action'] == 'set_power_on'):
+                logging.debug(edilkamin.set_power_on(_token, message['macaddress']))
+                loop_on_power(message['macaddress'], forJeedom)
+            elif (message['action'] == 'set_power_off'):
+                logging.debug(edilkamin.set_power_off(_token, message['macaddress']))
+                loop_on_power(message['macaddress'], forJeedom)
+            elif (message['action'].startswith('fan_speed')):
+                fanId = int(message['action'][-1])
+                logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
+
+            info = device_info(message['macaddress'])
+            forJeedom['infos'] = info
+            forJeedom['refresh_infos'] = refresh(json.loads(info))
             my_jeedom_com.send_change_immediate(forJeedom)
         except Exception as e:
             logging.error('Send command to demon error: %s', e)

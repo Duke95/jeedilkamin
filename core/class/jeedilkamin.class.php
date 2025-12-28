@@ -147,11 +147,16 @@ class jeedilkamin extends eqLogic {
     log::add('jeedilkamin', 'debug', '[Post Save] Init');
 		try {
 			$countCmd = 0;
+      $this->createCmd('state', 'Etat', $countCmd++, 'info', 'binary');
+      $this->createCmd('set_power_on', 'Power ON', $countCmd++, 'action', 'other');
+      $this->createCmd('set_power_off', 'Power OFF', $countCmd++, 'action', 'other');
 			$this->createCmd('state', 'Etat', $countCmd++, 'info', 'binary');
 			$this->createCmd('temperature', 'Température', $countCmd++, 'info', 'numeric', '°C');
 			$this->createCmd('alarm_type', 'Alarm', $countCmd++, 'info', 'numeric');
-			$this->createCmd('manual_power_level', 'Puissance', $countCmd++, 'info', 'numeric');
+      $this->createCmd('phase', 'Phase', $countCmd++, 'info', 'string');
+			//$this->createCmd('manual_power_level', 'Puissance utilisateur', $countCmd++, 'info', 'numeric');
 			$this->createCmd('pellet_autonomy_time', 'Pellet autonomie', $countCmd++, 'info', 'numeric');
+      $this->createCmd('actual_power', 'Puissance', $countCmd++, 'info', 'numeric');
 			$param = array();
 			$param['action'] = 'postSave';
 			$param['macaddress'] = $this->getConfiguration('macaddress');
@@ -332,9 +337,26 @@ class jeedilkaminCmd extends cmd {
     foreach ($_options as $key => $value) {
       log::add('jeedilkamin', 'debug', 'Option(s) : ' . $key . ':' . $value);
     }
-    /*if ($this->getLogicalId() == 'fan1') {
-      log::add('jeedilkamin')
-    }*/
+    $eqLogic = $this->getEqLogic();
+    log::add('jeedilkamin', 'debug', 'Mac Address : ' . $eqLogic->getConfiguration('macaddress'));
+    $param['macaddress'] = $eqLogic->getConfiguration('macaddress');
+    if ($this->getLogicalId() == 'set_power_on') {
+      log::add('jeedilkamin', 'debug', "Set Power On");
+      $param['action'] = $this->getLogicalId();
+      jeedilkamin::sendToDaemon($param);
+    }elseif ($this->getLogicalId() == 'set_power_off') {
+      try {
+        log::add('jeedilkamin', 'debug', "Set Power Off");
+        $param['action'] = $this->getLogicalId();
+        jeedilkamin::sendToDaemon($param);
+      } catch (Exception $e) {
+			  log::add('jeedilkamin', 'error', 'Exception reçue : ' . $e->getMessage());
+		  }
+    }elseif (str_starts_with($this->getLogicalId(),'fan_speed')) {
+      $param['action'] = $this->getLogicalId();
+      $param['speed'] = $_options['slider'];
+      jeedilkamin::sendToDaemon($param);
+    }
   }
 
   /*     * **********************Getteur Setteur*************************** */
