@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
-function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $subType, $value = '', $fan_ventilation = 0, $unite = '', $isHistorized = 0, $template = [])
+function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $subType, $value = '', $max_value = 0, $unite = '', $isHistorized = 0, $template = [])
 {
     $cmd = $eqLogic->getCmd(null, $commandName);
     if (!is_object($cmd)) {
@@ -34,7 +34,7 @@ function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $
                 else {
                     $cmd->setConfiguration('minValue' , 0);
                 }
-                $cmd->setConfiguration('maxValue' , $fan_ventilation);
+                $cmd->setConfiguration('maxValue' , $max_value);
             }
         }
         $cmd->setUnite($unite);
@@ -99,13 +99,15 @@ try
     log::add('jeedilkamin', 'debug', 'Start Info');
     $infos = json_decode($result['infos'], true);
     $nbFans = $infos['nvm']['installer_parameters']['fans_number'];
+    $manualPower = $infos['nvm']['user_parameters']['manual_power'];
     if (isset($result['eqlogicid']) && isset($result['countcmd'])) {
         $nbCmd = $result['countcmd'];
         $edilkamin = eqLogic::byId($result['eqlogicid']);
         for ($i=1; $i<=$nbFans; $i++) {
-            $id = createCmd($edilkamin, 'fan' . $i, 'Fan' . $i, $nbCmd + $i, 'info', 'string');
-            createCmd($edilkamin, 'fan_speed' . $i, 'Fan speed' . $i, $nbCmd + $i, 'action', 'slider', $id, $infos['nvm']['user_parameters']['fan_' . $i .'_ventilation']);
+            $id = createCmd($edilkamin, 'fan' . $i, 'Fan' . $i, $nbCmd++, 'info', 'string');
+            createCmd($edilkamin, 'fan_speed' . $i, 'Fan speed' . $i, $nbCmd++, 'action', 'slider', $id, $infos['nvm']['user_parameters']['fan_' . $i .'_ventilation']);
         }
+        createCmd($edilkamin, 'manual_power', 'Puissance utilisateur', $nbCmd++, 'action', 'slider', '', $manualPower);
     }
 
     $eqLogics = eqLogic::byTypeAndSearchConfiguration('jeedilkamin', $result['mac_address']);

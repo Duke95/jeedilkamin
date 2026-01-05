@@ -13,7 +13,7 @@
 		"min" : 10,
 		"max" : 12.99
 	},
-	"category": "devicecommunication<",
+	"category": "devicecommunication",
 	"hasDependency": true,
 	"hasOwnDeamon": true,
 	"maxDependancyInstallTime": 10,

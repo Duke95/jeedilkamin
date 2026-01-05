@@ -157,6 +157,12 @@ class jeedilkamin extends eqLogic {
 			//$this->createCmd('manual_power_level', 'Puissance utilisateur', $countCmd++, 'info', 'numeric');
 			$this->createCmd('pellet_autonomy_time', 'Pellet autonomie', $countCmd++, 'info', 'numeric');
       $this->createCmd('actual_power', 'Puissance', $countCmd++, 'info', 'numeric');
+      $this->createCmd('is_auto', 'Mode AUTO', $countCmd++, 'info', 'binary');
+      $this->createCmd('set_auto_on', 'Auto ON', $countCmd++, 'action', 'other');
+      $this->createCmd('set_auto_off', 'Auto OFF', $countCmd++, 'action', 'other');
+      $this->createCmd('is_relax', 'Mode Relax', $countCmd++, 'info', 'binary');
+      $this->createCmd('set_relax_on', 'Relax ON', $countCmd++, 'action', 'other');
+      $this->createCmd('set_relax_off', 'Relax OFF', $countCmd++, 'action', 'other');
 			$param = array();
 			$param['action'] = 'postSave';
 			$param['macaddress'] = $this->getConfiguration('macaddress');
@@ -340,23 +346,15 @@ class jeedilkaminCmd extends cmd {
     $eqLogic = $this->getEqLogic();
     log::add('jeedilkamin', 'debug', 'Mac Address : ' . $eqLogic->getConfiguration('macaddress'));
     $param['macaddress'] = $eqLogic->getConfiguration('macaddress');
-    if ($this->getLogicalId() == 'set_power_on') {
-      log::add('jeedilkamin', 'debug', "Set Power On");
-      $param['action'] = $this->getLogicalId();
-      jeedilkamin::sendToDaemon($param);
-    }elseif ($this->getLogicalId() == 'set_power_off') {
-      try {
-        log::add('jeedilkamin', 'debug', "Set Power Off");
-        $param['action'] = $this->getLogicalId();
-        jeedilkamin::sendToDaemon($param);
-      } catch (Exception $e) {
-			  log::add('jeedilkamin', 'error', 'Exception reçue : ' . $e->getMessage());
-		  }
-    }elseif (str_starts_with($this->getLogicalId(),'fan_speed')) {
-      $param['action'] = $this->getLogicalId();
+    $param['action'] = $this->getLogicalId();
+    if (str_starts_with($this->getLogicalId(),'fan_speed')) {
       $param['speed'] = $_options['slider'];
       jeedilkamin::sendToDaemon($param);
+    }elseif ($this->getLogicalId() == 'manual_power') {
+      $param['manual_power'] = $_options['slider'];
+      jeedilkamin::sendToDaemon($param);
     }
+    jeedilkamin::sendToDaemon($param);
   }
 
   /*     * **********************Getteur Setteur*************************** */
