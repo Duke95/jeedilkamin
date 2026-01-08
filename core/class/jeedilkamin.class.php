@@ -168,7 +168,6 @@ class jeedilkamin extends eqLogic {
 			$param['macaddress'] = $this->getConfiguration('macaddress');
 			$param['eqlogicid'] = $this->getId();
 			$param['countcmd'] = $countCmd;
-			log::add('jeedilkamin', 'debug', '[Post Save] eqlogicid=' . $param['eqlogicid']);
 			self::sendToDaemon($param);
 		} catch (Exception $e) {
 			log::add('jeedilkamin', 'error', 'Exception reçue : ' . $e->getMessage());
@@ -271,21 +270,16 @@ class jeedilkamin extends eqLogic {
 	}
 
 	public static function sendToDaemon($params) {
-	log::add('jeedilkamin', 'debug', '[sendToDaemon] START');
 	$deamon_info = self::deamon_info();
 	if ($deamon_info['state'] != 'ok') {
 		throw new Exception("Le démon n'est pas démarré");
 	}
 	$params['apikey'] = jeedom::getApiKey(__CLASS__);
 	$payLoad = json_encode($params, JSON_NUMERIC_CHECK);
-	log::add('jeedilkamin', 'debug', '[sendToDaemon] Socket create ' . $payLoad);
 	$socket = socket_create(AF_INET, SOCK_STREAM, 0);
 	socket_connect($socket, '127.0.0.1', config::byKey('socketport', __CLASS__, '51981'));
-	log::add('jeedilkamin', 'debug', '[sendToDaemon] Socket write');
 	socket_write($socket, $payLoad, strlen($payLoad));
-	log::add('jeedilkamin', 'debug', '[sendToDaemon] Socket close');
 	socket_close($socket);
-	log::add('jeedilkamin', 'debug', '[sendToDaemon] END');
   }
 
   public static function updateJeedilkaminData($_options) {
@@ -344,15 +338,12 @@ class jeedilkaminCmd extends cmd {
       log::add('jeedilkamin', 'debug', 'Option(s) : ' . $key . ':' . $value);
     }
     $eqLogic = $this->getEqLogic();
-    log::add('jeedilkamin', 'debug', 'Mac Address : ' . $eqLogic->getConfiguration('macaddress'));
     $param['macaddress'] = $eqLogic->getConfiguration('macaddress');
     $param['action'] = $this->getLogicalId();
     if (str_starts_with($this->getLogicalId(),'fan_speed')) {
       $param['speed'] = $_options['slider'];
-      jeedilkamin::sendToDaemon($param);
     }elseif ($this->getLogicalId() == 'manual_power') {
       $param['manual_power'] = $_options['slider'];
-      jeedilkamin::sendToDaemon($param);
     }
     jeedilkamin::sendToDaemon($param);
   }

@@ -96,7 +96,6 @@ try
     if (!is_array($result)) {
         die();
     }
-    log::add('jeedilkamin', 'debug', 'Start Info');
     $infos = json_decode($result['infos'], true);
     $nbFans = $infos['nvm']['installer_parameters']['fans_number'];
     $manualPower = $infos['nvm']['user_parameters']['manual_power'];

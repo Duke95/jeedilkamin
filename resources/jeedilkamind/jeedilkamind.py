@@ -54,8 +54,6 @@ def login(username, password):
     """Login and return token."""
     global _token
     try:
-        logging.debug("username : %s", username)
-        logging.debug("password : %s", password)
         _token = edilkamin.sign_in(username, password)
         logging.info("Logged in to Edilkamin API")
     except Exception as e:
@@ -64,8 +62,6 @@ def login(username, password):
 
 def device_info(macaddress):
     try:
-        logging.debug("macaddress : %s", macaddress)
-        logging.debug("token : %s", _token)
         validJWT()
         return json.dumps(edilkamin.device_info(_token, macaddress)).replace('\\', '')
     except Exception as e:      
@@ -85,9 +81,20 @@ def refresh(info: dict):
         refresh_infos['pellet_autonomy_time'] = edilkamin.device_info_get_autonomy_time(info)
         refresh_infos['actual_power'] = info['status']['state']['actual_power']
         refresh_infos['is_auto'] = info['nvm']['user_parameters']['is_auto']
+        refresh_infos['is_relax'] = edilkamin.device_info_get_relax_mode(info)
         logging.debug('Phase stove_state : %s', info['status']['state']['stove_state'])
         logging.debug('Phase operational_phase : %s', info['status']['state']['operational_phase'])
         logging.debug('Phase sub_operational_phase : %s', info['status']['state']['sub_operational_phase'])
+        if (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 1 and info['status']['state']['sub_operational_phase'] == 1):
+            refresh_infos['phase'] = 'Allumage : Nettoyage sans nettoyeur'
+        elif (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 2 and info['status']['state']['sub_operational_phase'] == 2):
+            refresh_infos['phase'] = 'Allumé'
+        elif (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 1 and info['status']['state']['sub_operational_phase'] == 3):
+            refresh_infos['phase'] = 'Allumage : Chargement pellets'
+        elif (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 0 and info['status']['state']['sub_operational_phase'] == 0):
+            refresh_infos['phase'] = 'Eteint'
+        elif (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 3 and info['status']['state']['sub_operational_phase'] == 0):
+            refresh_infos['phase'] = 'Refroidissement'
         return refresh_infos
     except Exception as e:
         logging.error('[Refresh] %s', e)
@@ -106,8 +113,6 @@ def read_socket():
                 raise Exception("Mac Address is empty!")
             
             forJeedom = {}
-            
-            logging.debug(message['action'])
             if (message['action'] == 'postSave'):
                 if (message['eqlogicid']):
                     forJeedom['eqlogicid'] = message['eqlogicid']
@@ -118,27 +123,37 @@ def read_socket():
                 #loop_on_power(message['macaddress'], forJeedom)
                 while 1:
                     info = device_info(message['macaddress'])
+                    json_info = json.loads(info)
                     forJeedom['infos'] = info
-                    forJeedom['refresh_infos'] = refresh(json.loads(info))
+                    forJeedom['refresh_infos'] = refresh(json_info)
                     my_jeedom_com.send_change_immediate(forJeedom)
-                    if (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 2 and info['status']['state']['sub_operational_phase'] == 2):
+                    if (json_info['status']['state']['stove_state'] == 6 and json_info['status']['state']['operational_phase'] == 2 and json_info['status']['state']['sub_operational_phase'] == 2):
                         break
                     time.sleep(30.0)
             elif (message['action'] == 'set_power_off'):
                 logging.debug(edilkamin.set_power_off(_token, message['macaddress']))
                 while 1:
                     info = device_info(message['macaddress'])
+                    json_info = json.loads(info)
                     forJeedom['infos'] = info
-                    forJeedom['refresh_infos'] = refresh(json.loads(info))
+                    forJeedom['refresh_infos'] = refresh(json_info)
                     my_jeedom_com.send_change_immediate(forJeedom)
-                    if (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 0 and info['status']['state']['sub_operational_phase'] == 0):
+                    if (json_info['status']['state']['stove_state'] == 1 and json_info['status']['state']['operational_phase'] == 0 and json_info['status']['state']['sub_operational_phase'] == 0):
                         break
                     time.sleep(30.0)
             elif (message['action'].startswith('fan_speed')):
+                info = json.loads(device_info(message['macaddress']))
                 fanId = int(message['action'][-1])
-                logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
+                if (info['status']['fans']['fan_'+str(fanId)+'_speed'] != int(message['speed'])):
+                    logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
+                else:
+                    logging.debug('Fan%i already set to %i', fanId, int(message['speed']))
             elif (message['action'].startswith('manual_power')):
-                logging.debug(edilkamin.set_manual_power_level(_token, message['macaddress'], int(message['manual_power'])))
+                info = json.loads(device_info(message['macaddress']))
+                if (info['status']['state']['actual_power'] != int(message['manual_power'])):
+                    logging.debug(edilkamin.set_manual_power_level(_token, message['macaddress'], int(message['manual_power'])))
+                else:
+                    logging.debug('Power already set to %i', int(message['manual_power']))
             elif (message['action'] == 'set_auto_on'):
                 payload = {"name": "auto_mode", "value": True}
                 logging.debug(edilkamin.mqtt_command(_token, message['macaddress'], payload))
