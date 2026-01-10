@@ -82,6 +82,7 @@ def refresh(info: dict):
         refresh_infos['actual_power'] = info['status']['state']['actual_power']
         refresh_infos['is_auto'] = info['nvm']['user_parameters']['is_auto']
         refresh_infos['is_relax'] = edilkamin.device_info_get_relax_mode(info)
+        refresh_infos['target_temperature'] = edilkamin.device_info_get_target_temperature(info)
         logging.debug('Phase stove_state : %s', info['status']['state']['stove_state'])
         logging.debug('Phase operational_phase : %s', info['status']['state']['operational_phase'])
         logging.debug('Phase sub_operational_phase : %s', info['status']['state']['sub_operational_phase'])
@@ -164,6 +165,8 @@ def read_socket():
                 logging.debug(edilkamin.set_relax_mode(_token, message['macaddress'], True))
             elif (message['action'] == 'set_relax_off'):
                 logging.debug(edilkamin.set_relax_mode(_token, message['macaddress'], False))
+            elif (message['action'] == 'set_target_temperature'):
+                logging.debug(edilkamin.set_target_temperature(_token, message['macaddress'], int(message['target_temperature'])))
 
             time.sleep(1.0)
             info = device_info(message['macaddress'])

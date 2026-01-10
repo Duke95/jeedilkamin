@@ -163,6 +163,8 @@ class jeedilkamin extends eqLogic {
       $this->createCmd('is_relax', 'Mode Relax', $countCmd++, 'info', 'binary');
       $this->createCmd('set_relax_on', 'Relax ON', $countCmd++, 'action', 'other');
       $this->createCmd('set_relax_off', 'Relax OFF', $countCmd++, 'action', 'other');
+      $this->createCmd('target_temperature', 'Consigne', $countCmd++, 'info', 'numeric');
+      $this->createCmd('set_target_temperature', 'Température consigne', $countCmd++, 'action', 'slider');
 			$param = array();
 			$param['action'] = 'postSave';
 			$param['macaddress'] = $this->getConfiguration('macaddress');
@@ -344,6 +346,8 @@ class jeedilkaminCmd extends cmd {
       $param['speed'] = $_options['slider'];
     }elseif ($this->getLogicalId() == 'manual_power') {
       $param['manual_power'] = $_options['slider'];
+    }elseif ($this->getLogicalId() == 'set_target_temperature') {
+      $param['target_temperature'] = $_options['slider'];
     }
     jeedilkamin::sendToDaemon($param);
   }
