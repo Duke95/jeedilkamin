@@ -195,5 +195,17 @@ $eqLogics = eqLogic::byType($plugin->getId());
 		</div><!-- /.tab-content -->
 	</div><!-- /.eqLogic -->
 </div><!-- /.row row-overflow -->
+<script>
+function openAlarmModal() {
+  var eqLogicId = $('.eqLogicAttr[data-l1key=id]').value()
+  $('#md_modal').dialog({ title: '{{Historique des alarmes}}' })
+  $('#md_modal').load(
+    'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin&eqLogic_id=' + eqLogicId,
+    function () {
+      $('#md_modal').dialog('open')
+    }
+  )
+}
+</script>
 <!-- Inclusion du fichier javascript du core - NE PAS MODIFIER NI SUPPRIMER -->
 <?php include_file('core', 'plugin.template', 'js'); ?>
