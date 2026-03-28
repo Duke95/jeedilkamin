@@ -201,6 +201,8 @@ def _wait_for_state(macaddress, forJeedom, target: dict):
 
 def _handle_post_save(message, forJeedom):
     forJeedom['eqlogicid'] = message.get('eqlogicid')
+    # Mémoriser la MAC pour le rafraîchissement autonome
+    _known_devices[message['macaddress']] = message.get('eqlogicid')
     # device_info est récupéré ici pour permettre la création automatique des commandes
     # Le JSON complet est transmis au callback PHP qui se charge du mapping
     info = device_info(message['macaddress'])
@@ -303,10 +305,25 @@ def read_socket():
 
 def listen():
     my_jeedom_socket.open()
+    last_refresh = 0
     try:
         while 1:
             time.sleep(0.5)
             read_socket()
+            # Rafraîchissement autonome toutes les _refresh_interval secondes
+            now = time.time()
+            if now - last_refresh >= _refresh_interval and _known_devices:
+                logging.debug('Auto-refresh des équipements connus')
+                for macaddress in list(_known_devices.keys()):
+                    try:
+                        forJeedom = {'mac_address': macaddress}
+                        info = device_info(macaddress)
+                        forJeedom['infos'] = info
+                        forJeedom['refresh_infos'] = refresh(json.loads(info))
+                        my_jeedom_com.send_change_immediate(forJeedom)
+                    except Exception as e:
+                        logging.error('Auto-refresh error for %s: %s', macaddress, e)
+                last_refresh = now
     except KeyboardInterrupt:
         shutdown()
 
@@ -344,6 +361,8 @@ _pidfile = '/tmp/demond.pid'
 _apikey = ''
 _callback = ''
 _cycle = 0.3
+_refresh_interval = 300  # secondes, modifiable via --refreshinterval
+_known_devices = {}  # {macaddress: eqlogicid}
 
 parser = argparse.ArgumentParser(description='Desmond Daemon for Jeedom plugin')
 parser.add_argument("--device", help="Device", type=str)
@@ -355,6 +374,7 @@ parser.add_argument("--pid", help="Pid file", type=str)
 parser.add_argument("--socketport", help="Port for socket server", type=int)
 parser.add_argument("--email", help="Email address", type=str)
 parser.add_argument("--password", help="Password", type=str)
+parser.add_argument("--refreshinterval", help="Auto-refresh interval in seconds", type=int)
 args = parser.parse_args()
 
 if args.device:
@@ -375,6 +395,8 @@ if args.email:
     _email = args.email
 if args.password:
     _password = args.password
+if args.refreshinterval:
+    _refresh_interval = args.refreshinterval
 
 _socket_port = int(_socket_port)
 

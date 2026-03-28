@@ -146,7 +146,7 @@ class jeedilkamin extends eqLogic {
       $cron->setFunction('updateJeedilkaminData');
       $cron->setOption(array('jeedilkamin_id' => intval($this->getId())));
     }
-    $cron->setSchedule($this->getConfiguration('refreshCron', '*/5 * * * *'));
+    $cron->setSchedule($this->getConfiguration('autorefresh', '*/5 * * * *'));
     $cron->save();
     log::add('jeedilkamin', 'debug', '[Post Save] End');
   }
@@ -208,6 +208,7 @@ class jeedilkamin extends eqLogic {
     $cmd .= ' --callback ' . network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp') . '/plugins/jeedilkamin/core/php/jeeJeedilkamin.php'; // chemin de la callback url à modifier (voir ci-dessous)
     $cmd .= ' --email "' . trim(str_replace('"', '\"', config::byKey('email', __CLASS__))) . '"'; // on rajoute les paramètres utiles à votre démon, ici user
     $cmd .= ' --password "' . trim(str_replace('"', '\"', config::byKey('password', __CLASS__))) . '"'; // et password
+    $cmd .= ' --refreshinterval 300'; // intervalle de rafraîchissement autonome en secondes
     $cmd .= ' --apikey ' . jeedom::getApiKey(__CLASS__); // l'apikey pour authentifier les échanges suivants
     $cmd .= ' --pid ' . jeedom::getTmpFolder(__CLASS__) . '/deamon.pid'; // et on précise le chemin vers le pid file (ne pas modifier)
     log::add(__CLASS__, 'info', 'Lancement démon');
