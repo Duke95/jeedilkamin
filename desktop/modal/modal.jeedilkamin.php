@@ -58,7 +58,7 @@ krsort($byYear);
                 <h4 class="panel-title">
                     <i class="fas fa-calendar"></i>
                     <?php echo $year; ?>
-                    <span class="badge pull-right"><?php echo count($yearAlarms); ?></span>
+                    <span class="badge" style="margin-left:8px;"><?php echo count($yearAlarms); ?></span>
                 </h4>
             </div>
             <div id="collapse_<?php echo $year; ?>" class="panel-collapse collapse <?php echo ($year == date('Y')) ? 'in' : ''; ?>">
