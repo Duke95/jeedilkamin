@@ -17,164 +17,222 @@ import logging
 import sys
 import os
 import time
+import asyncio
 import traceback
 import signal
 import json
 import argparse
 import edilkamin
 import jwt
-import requests
+import aiohttp
 
 from jeedom.jeedom import jeedom_socket, jeedom_utils, jeedom_com, JEEDOM_SOCKET_MESSAGE  # jeedom_serial
 
-def validJWT():
-    logging.debug("Valid JWT")
-    COGNITO_REGION = "eu-central-1"
-    USER_POOL_ID = "eu-central-1_BYmQ2VBlo"
+_COGNITO_REGION = "eu-central-1"
+_COGNITO_USER_POOL_ID = "eu-central-1_BYmQ2VBlo"
+_COGNITO_AUDIENCE = "7sc1qltkqobo3ddqsk4542dg2h"
+_COGNITO_JWKS_URL = f"https://cognito-idp.{_COGNITO_REGION}.amazonaws.com/{_COGNITO_USER_POOL_ID}/.well-known/jwks.json"
 
-    JWKS_URL = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
-
-    # 1. Récupérer les clés publiques
-    jwks = requests.get(JWKS_URL).json()
-
-    header = jwt.get_unverified_header(_token)
-    kid = header["kid"]
-    key = next(k for k in jwks["keys"] if k["kid"] == kid)
-    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+async def _ensure_valid_token_async():
+    """Vérifie la validité du token JWT et le renouvelle si expiré."""
+    logging.debug("Checking JWT validity")
     try:
-        jwt.decode(_token, public_key, audience="7sc1qltkqobo3ddqsk4542dg2h", algorithms=["RS256"])
+        async with aiohttp.ClientSession() as session:
+            async with session.get(_COGNITO_JWKS_URL) as resp:
+                jwks = await resp.json()
+
+        kid = jwt.get_unverified_header(_token).get("kid")
+        key = next((k for k in jwks["keys"] if k["kid"] == kid), None)
+        if key is None:
+            raise Exception(f"JWT key id '{kid}' not found in JWKS")
+
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+        jwt.decode(_token, public_key, audience=_COGNITO_AUDIENCE, algorithms=["RS256"])
         logging.info("Token valid")
     except jwt.ExpiredSignatureError:
-        logging.info("Token expired")
-        login(_email,_password)
+        logging.info("Token expired, renewing...")
+        await _login_async(_email, _password)
     except Exception as e:
-        logging.error("ValidJWT: %s",e)
+        logging.error("Token validation error: %s", e)
 
-def login(username, password):
+async def _login_async(username, password):
     """Login and return token."""
     global _token
     try:
-        _token = edilkamin.sign_in(username, password)
+        _token = await edilkamin.sign_in(username, password)
         logging.info("Logged in to Edilkamin API")
     except Exception as e:
-        logging.error("Login failed: %s",e)
+        logging.error("Login failed: %s", e)
+
+async def _device_info_async(macaddress):
+    try:
+        await _ensure_valid_token_async()
+        return json.dumps(await edilkamin.device_info(_token, macaddress)).replace('\\', '')
+    except Exception as e:
+        logging.error("[device_info] error: %s", e)
     return None
 
+def validJWT():
+    asyncio.run(_ensure_valid_token_async())
+
+def login(username, password):
+    asyncio.run(_login_async(username, password))
+
 def device_info(macaddress):
-    try:
-        validJWT()
-        return json.dumps(edilkamin.device_info(_token, macaddress)).replace('\\', '')
-    except Exception as e:      
-        logging.error("[device_info]Login failed: %s",e)
-    return None
+    return asyncio.run(_device_info_async(macaddress))
+
+_PHASE_MAP = {
+    (6, 1, 1): 'Allumage : Nettoyage sans nettoyeur',
+    (6, 2, 2): 'Allumé',
+    (6, 1, 3): 'Allumage : Chargement pellets',
+    (1, 0, 0): 'Eteint',
+    (1, 3, 0): 'Refroidissement',
+}
 
 def refresh(info: dict):
     try:
-        refresh_infos = {}
-        refresh_infos['state'] = edilkamin.device_info_get_power(info).value
-        nbFans = info['nvm']['installer_parameters']['fans_number']
-        for i in range(nbFans):
-            refresh_infos['fan'+str(i+1)] = edilkamin.device_info_get_fan_speed(info, i+1)
-        refresh_infos['temperature'] = edilkamin.device_info_get_environment_temperature(info)
-        refresh_infos['alarm_type'] = edilkamin.device_info_get_alarm_reset(info)
-        refresh_infos['manual_power_level'] = edilkamin.device_info_get_manual_power_level(info)
-        refresh_infos['pellet_autonomy_time'] = edilkamin.device_info_get_autonomy_time(info)
-        refresh_infos['actual_power'] = info['status']['state']['actual_power']
-        refresh_infos['is_auto'] = info['nvm']['user_parameters']['is_auto']
-        refresh_infos['is_relax'] = edilkamin.device_info_get_relax_mode(info)
-        refresh_infos['target_temperature'] = edilkamin.device_info_get_target_temperature(info)
-        logging.debug('Phase stove_state : %s', info['status']['state']['stove_state'])
-        logging.debug('Phase operational_phase : %s', info['status']['state']['operational_phase'])
-        logging.debug('Phase sub_operational_phase : %s', info['status']['state']['sub_operational_phase'])
-        if (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 1 and info['status']['state']['sub_operational_phase'] == 1):
-            refresh_infos['phase'] = 'Allumage : Nettoyage sans nettoyeur'
-        elif (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 2 and info['status']['state']['sub_operational_phase'] == 2):
-            refresh_infos['phase'] = 'Allumé'
-        elif (info['status']['state']['stove_state'] == 6 and info['status']['state']['operational_phase'] == 1 and info['status']['state']['sub_operational_phase'] == 3):
-            refresh_infos['phase'] = 'Allumage : Chargement pellets'
-        elif (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 0 and info['status']['state']['sub_operational_phase'] == 0):
-            refresh_infos['phase'] = 'Eteint'
-        elif (info['status']['state']['stove_state'] == 1 and info['status']['state']['operational_phase'] == 3 and info['status']['state']['sub_operational_phase'] == 0):
-            refresh_infos['phase'] = 'Refroidissement'
-        return refresh_infos
+        state = info['status']['state']
+        nb_fans = info['nvm']['installer_parameters']['fans_number']
+        phase_key = (state['stove_state'], state['operational_phase'], state['sub_operational_phase'])
+        logging.debug('Phase key: %s', phase_key)
+
+        return {
+            'state':               edilkamin.device_info_get_power(info).value,
+            'temperature':         edilkamin.device_info_get_environment_temperature(info),
+            'alarm_type':          edilkamin.device_info_get_alarm_reset(info),
+            'manual_power_level':  edilkamin.device_info_get_manual_power_level(info),
+            'pellet_autonomy_time': edilkamin.device_info_get_autonomy_time(info),
+            'actual_power':        state['actual_power'],
+            'is_auto':             info['nvm']['user_parameters']['is_auto'],
+            'is_relax':            edilkamin.device_info_get_relax_mode(info),
+            'target_temperature':  edilkamin.device_info_get_target_temperature(info),
+            'phase':               _PHASE_MAP.get(phase_key, 'Inconnu'),
+            **{f'fan{i+1}': edilkamin.device_info_get_fan_speed(info, i+1) for i in range(nb_fans)},
+        }
     except Exception as e:
         logging.error('[Refresh] %s', e)
 
-def read_socket():
-    if not JEEDOM_SOCKET_MESSAGE.empty():
-        logging.debug("Message received in socket JEEDOM_SOCKET_MESSAGE")
-        #message = json.loads(jeedom_utils.stripped(JEEDOM_SOCKET_MESSAGE.get()))
-        message = json.loads(JEEDOM_SOCKET_MESSAGE.get())
-        if message['apikey'] != _apikey:
-            logging.error("Invalid apikey from socket: %s", message)
-            return
-        try:
-            logging.debug("Init read_socket")
-            if (not message['macaddress']):
-                raise Exception("Mac Address is empty!")
-            
-            forJeedom = {}
-            if (message['action'] == 'postSave'):
-                if (message['eqlogicid']):
-                    forJeedom['eqlogicid'] = message['eqlogicid']
-                if (message['countcmd']):
-                    forJeedom['countcmd'] = message['countcmd']
-            elif (message['action'] == 'set_power_on'):
-                logging.debug(edilkamin.set_power_on(_token, message['macaddress']))
-                #loop_on_power(message['macaddress'], forJeedom)
-                while 1:
-                    info = device_info(message['macaddress'])
-                    json_info = json.loads(info)
-                    forJeedom['infos'] = info
-                    forJeedom['refresh_infos'] = refresh(json_info)
-                    my_jeedom_com.send_change_immediate(forJeedom)
-                    if (json_info['status']['state']['stove_state'] == 6 and json_info['status']['state']['operational_phase'] == 2 and json_info['status']['state']['sub_operational_phase'] == 2):
-                        break
-                    time.sleep(30.0)
-            elif (message['action'] == 'set_power_off'):
-                logging.debug(edilkamin.set_power_off(_token, message['macaddress']))
-                while 1:
-                    info = device_info(message['macaddress'])
-                    json_info = json.loads(info)
-                    forJeedom['infos'] = info
-                    forJeedom['refresh_infos'] = refresh(json_info)
-                    my_jeedom_com.send_change_immediate(forJeedom)
-                    if (json_info['status']['state']['stove_state'] == 1 and json_info['status']['state']['operational_phase'] == 0 and json_info['status']['state']['sub_operational_phase'] == 0):
-                        break
-                    time.sleep(30.0)
-            elif (message['action'].startswith('fan_speed')):
-                info = json.loads(device_info(message['macaddress']))
-                fanId = int(message['action'][-1])
-                if (info['status']['fans']['fan_'+str(fanId)+'_speed'] != int(message['speed'])):
-                    logging.debug(edilkamin.set_fan_speed(_token, message['macaddress'], fanId, int(message['speed'])))
-                else:
-                    logging.debug('Fan%i already set to %i', fanId, int(message['speed']))
-            elif (message['action'].startswith('manual_power')):
-                info = json.loads(device_info(message['macaddress']))
-                if (info['status']['state']['actual_power'] != int(message['manual_power'])):
-                    logging.debug(edilkamin.set_manual_power_level(_token, message['macaddress'], int(message['manual_power'])))
-                else:
-                    logging.debug('Power already set to %i', int(message['manual_power']))
-            elif (message['action'] == 'set_auto_on'):
-                payload = {"name": "auto_mode", "value": True}
-                logging.debug(edilkamin.mqtt_command(_token, message['macaddress'], payload))
-            elif (message['action'] == 'set_auto_off'):
-                payload = {"name": "auto_mode", "value": False}
-                logging.debug(edilkamin.mqtt_command(_token, message['macaddress'], payload))
-            elif (message['action'] == 'set_relax_on'):
-                logging.debug(edilkamin.set_relax_mode(_token, message['macaddress'], True))
-            elif (message['action'] == 'set_relax_off'):
-                logging.debug(edilkamin.set_relax_mode(_token, message['macaddress'], False))
-            elif (message['action'] == 'set_target_temperature'):
-                logging.debug(edilkamin.set_target_temperature(_token, message['macaddress'], int(message['target_temperature'])))
+def _run(coro):
+    """Exécute une coroutine edilkamin de façon synchrone."""
+    return asyncio.run(coro)
 
+def device_info_json(macaddress):
+    """Retourne les infos du device sous forme de dict."""
+    return json.loads(device_info(macaddress))
+
+def _wait_for_state(macaddress, forJeedom, target: dict):
+    """Boucle jusqu'à ce que le poêle atteigne l'état cible, en remontant les infos à Jeedom."""
+    while True:
+        info = device_info(macaddress)
+        json_info = json.loads(info)
+        forJeedom['infos'] = info
+        forJeedom['refresh_infos'] = refresh(json_info)
+        my_jeedom_com.send_change_immediate(forJeedom)
+        state = json_info['status']['state']
+        if all(state[k] == v for k, v in target.items()):
+            break
+        time.sleep(30.0)
+
+def _handle_post_save(message, forJeedom):
+    forJeedom['eqlogicid'] = message.get('eqlogicid')
+    # device_info est récupéré ici pour permettre la création automatique des commandes
+    # Le JSON complet est transmis au callback PHP qui se charge du mapping
+    info = device_info(message['macaddress'])
+    forJeedom['infos'] = info
+    forJeedom['refresh_infos'] = refresh(json.loads(info))
+
+def _handle_power_on(message, forJeedom):
+    _run(edilkamin.set_power_on(_token, message['macaddress']))
+    _wait_for_state(message['macaddress'], forJeedom,
+                    {'stove_state': 6, 'operational_phase': 2, 'sub_operational_phase': 2})
+
+def _handle_power_off(message, forJeedom):
+    _run(edilkamin.set_power_off(_token, message['macaddress']))
+    _wait_for_state(message['macaddress'], forJeedom,
+                    {'stove_state': 1, 'operational_phase': 0, 'sub_operational_phase': 0})
+
+def _handle_fan_speed(message, forJeedom):
+    info = device_info_json(message['macaddress'])
+    fan_id = int(message['action'][-1])
+    current = info['status']['fans'][f'fan_{fan_id}_speed']
+    target = int(message['speed'])
+    if current != target:
+        _run(edilkamin.set_fan_speed(_token, message['macaddress'], fan_id, target))
+    else:
+        logging.debug('Fan%i already set to %i', fan_id, target)
+
+def _handle_manual_power(message, forJeedom):
+    info = device_info_json(message['macaddress'])
+    current = info['status']['state']['actual_power']
+    target = int(message['manual_power'])
+    if current != target:
+        _run(edilkamin.set_manual_power_level(_token, message['macaddress'], target))
+    else:
+        logging.debug('Power already set to %i', target)
+
+def _handle_auto_mode(message, forJeedom):
+    value = message['action'] == 'set_auto_on'
+    _run(edilkamin.mqtt_command(_token, message['macaddress'], {"name": "auto_mode", "value": value}))
+
+def _handle_relax_mode(message, forJeedom):
+    value = message['action'] == 'set_relax_on'
+    _run(edilkamin.set_relax_mode(_token, message['macaddress'], value))
+
+def _handle_target_temperature(message, forJeedom):
+    _run(edilkamin.set_target_temperature(_token, message['macaddress'], int(message['target_temperature'])))
+
+_ACTION_HANDLERS = {
+    'postSave':             _handle_post_save,
+    'set_power_on':         _handle_power_on,
+    'set_power_off':        _handle_power_off,
+    'set_auto_on':          _handle_auto_mode,
+    'set_auto_off':         _handle_auto_mode,
+    'set_relax_on':         _handle_relax_mode,
+    'set_relax_off':        _handle_relax_mode,
+    'set_target_temperature': _handle_target_temperature,
+}
+
+def _get_handler(action):
+    if action in _ACTION_HANDLERS:
+        return _ACTION_HANDLERS[action]
+    if action.startswith('fan_speed'):
+        return _handle_fan_speed
+    if action.startswith('manual_power'):
+        return _handle_manual_power
+    return None
+
+def read_socket():
+    if JEEDOM_SOCKET_MESSAGE.empty():
+        return
+    logging.debug("Message received in socket JEEDOM_SOCKET_MESSAGE")
+    message = json.loads(JEEDOM_SOCKET_MESSAGE.get())
+    if message['apikey'] != _apikey:
+        logging.error("Invalid apikey from socket: %s", message)
+        return
+    try:
+        if not message.get('macaddress'):
+            raise Exception("Mac Address is empty!")
+
+        forJeedom = {}
+        action = message['action']
+        handler = _get_handler(action)
+        if handler:
+            handler(message, forJeedom)
+        else:
+            logging.warning("Unknown action: %s", action)
+
+        # mac_address toujours transmis pour que le PHP identifie l'eqLogic
+        forJeedom['mac_address'] = message['macaddress']
+
+        # Pour postSave, infos déjà remplies par le handler
+        if 'infos' not in forJeedom:
             time.sleep(1.0)
             info = device_info(message['macaddress'])
             forJeedom['infos'] = info
             forJeedom['refresh_infos'] = refresh(json.loads(info))
-            my_jeedom_com.send_change_immediate(forJeedom)
-        except Exception as e:
-            logging.error('Send command to demon error: %s', e)
+        my_jeedom_com.send_change_immediate(forJeedom)
+    except Exception as e:
+        logging.error('Send command to demon error: %s', e)
 
 
 def listen():
@@ -276,7 +334,7 @@ try:
         shutdown()
     # my_jeedom_serial = jeedom_serial(device=_device)  # if you need jeedom_serial
     my_jeedom_socket = jeedom_socket(port=_socket_port, address=_socket_host)
-    login(_email,_password)
+    login(_email, _password)
     listen()
 except Exception as e:
     logging.error('Fatal error: %s', e)

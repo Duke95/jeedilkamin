@@ -96,24 +96,6 @@ class jeedilkamin extends eqLogic {
       return "les infos essentiel de mon plugin";
    }
    */
-	private function createCmd($commandName, $commandDescription, $order, $type, $subType, $unite = '', $isHistorized = 0, $template = [])
-	{	
-		$cmd = $this->getCmd(null, $commandName);
-        if (!is_object($cmd)) {
-            $cmd = new jeedilkaminCmd();
-            $cmd->setOrder($order);
-			$cmd->setName(__($commandDescription, __FILE__));
-			$cmd->setEqLogic_id($this->getId());
-			$cmd->setLogicalId($commandName);
-			$cmd->setType($type);
-			$cmd->setSubType($subType);
-			$cmd->setUnite($unite);
-			$cmd->setIsHistorized($isHistorized);
-			if (!empty($template)) { $cmd->setTemplate($template[0], $template[1]); }
-			$cmd->save();
-			log::add('jeedilkamin', 'debug', 'Add command '.$cmd->getName().' (LogicalId : '.$cmd->getLogicalId().')');
-        }
-    }
   /*     * *********************Méthodes d'instance************************* */
 
   // Fonction exécutée automatiquement avant la création de l'équipement
@@ -145,45 +127,28 @@ class jeedilkamin extends eqLogic {
   // Fonction exécutée automatiquement après la sauvegarde (création ou mise à jour) de l'équipement
   public function postSave() {
     log::add('jeedilkamin', 'debug', '[Post Save] Init');
-		try {
-			$countCmd = 0;
-      $this->createCmd('state', 'Etat', $countCmd++, 'info', 'binary');
-      $this->createCmd('set_power_on', 'Power ON', $countCmd++, 'action', 'other');
-      $this->createCmd('set_power_off', 'Power OFF', $countCmd++, 'action', 'other');
-			$this->createCmd('temperature', 'Température', $countCmd++, 'info', 'numeric', '°C');
-			$this->createCmd('alarm_type', 'Alarm', $countCmd++, 'info', 'numeric');
-      $this->createCmd('phase', 'Phase', $countCmd++, 'info', 'string');
-			//$this->createCmd('manual_power_level', 'Puissance utilisateur', $countCmd++, 'info', 'numeric');
-			$this->createCmd('pellet_autonomy_time', 'Pellet autonomie', $countCmd++, 'info', 'numeric');
-      $this->createCmd('actual_power', 'Puissance', $countCmd++, 'info', 'numeric');
-      $this->createCmd('is_auto', 'Mode AUTO', $countCmd++, 'info', 'binary');
-      $this->createCmd('set_auto_on', 'Auto ON', $countCmd++, 'action', 'other');
-      $this->createCmd('set_auto_off', 'Auto OFF', $countCmd++, 'action', 'other');
-      $this->createCmd('is_relax', 'Mode Relax', $countCmd++, 'info', 'binary');
-      $this->createCmd('set_relax_on', 'Relax ON', $countCmd++, 'action', 'other');
-      $this->createCmd('set_relax_off', 'Relax OFF', $countCmd++, 'action', 'other');
-      $this->createCmd('target_temperature', 'Consigne', $countCmd++, 'info', 'numeric');
-      $this->createCmd('set_target_temperature', 'Température consigne', $countCmd++, 'action', 'slider');
-			$param = array();
-			$param['action'] = 'postSave';
-			$param['macaddress'] = $this->getConfiguration('macaddress');
-			$param['eqlogicid'] = $this->getId();
-			$param['countcmd'] = $countCmd;
-			self::sendToDaemon($param);
-		} catch (Exception $e) {
-			log::add('jeedilkamin', 'error', 'Exception reçue : ' . $e->getMessage());
-		}
+    try {
+      // Les commandes sont créées automatiquement par jeeJeedilkamin.php
+      // lors du premier retour du démon (postSave action), à partir du JSON device_info.
+      $param = array();
+      $param['action'] = 'postSave';
+      $param['macaddress'] = $this->getConfiguration('macaddress');
+      $param['eqlogicid'] = $this->getId();
+      self::sendToDaemon($param);
+    } catch (Exception $e) {
+      log::add('jeedilkamin', 'error', 'Exception reçue : ' . $e->getMessage());
+    }
 
     $cron = cron::byClassAndFunction('jeedilkamin', 'updateJeedilkaminData', array('jeedilkamin_id' => intval($this->getId())));
-      if (!is_object($cron)) {
-          $cron = new cron();
-          $cron->setClass('jeedilkamin');
-          $cron->setFunction('updateJeedilkaminData');
-          $cron->setOption(array('jeedilkamin_id' => intval($this->getId())));
-      }
-      $cron->setSchedule($this->getConfiguration('refreshCron', '*/5 * * * *'));
-      $cron->save();
-		log::add('jeedilkamin', 'debug', '[Post Save] End');
+    if (!is_object($cron)) {
+      $cron = new cron();
+      $cron->setClass('jeedilkamin');
+      $cron->setFunction('updateJeedilkaminData');
+      $cron->setOption(array('jeedilkamin_id' => intval($this->getId())));
+    }
+    $cron->setSchedule($this->getConfiguration('refreshCron', '*/5 * * * *'));
+    $cron->save();
+    log::add('jeedilkamin', 'debug', '[Post Save] End');
   }
 
   // Fonction exécutée automatiquement avant la suppression de l'équipement

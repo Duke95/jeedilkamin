@@ -7,6 +7,7 @@
 	"edilkamin" : {},
 	"setuptools" : {},
   "requests" : {},
+  "aiohttp" : {},
   "PyJWT" : {}
   },
   "npm": {
