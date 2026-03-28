@@ -23,6 +23,7 @@ import traceback
 import signal
 import json
 import argparse
+from datetime import datetime
 import edilkamin
 import jwt
 import aiohttp
@@ -110,7 +111,6 @@ _MAX_ALARMS_DISPLAY = 5
 
 def _format_last_alarms(alarms_log: dict) -> str:
     """Retourne les N dernières alarmes non nulles sous forme lisible."""
-    from datetime import datetime
     alarms = [a for a in alarms_log.get('alarms', []) if a['timestamp'] > 0]
     alarms_sorted = sorted(alarms, key=lambda a: a['timestamp'], reverse=True)
     lines = []
@@ -120,7 +120,27 @@ def _format_last_alarms(alarms_log: dict) -> str:
         lines.append(f"{dt} - {label}")
     return '\n'.join(lines) if lines else 'Aucune alarme'
 
-_PHASE_MAP = {
+# Intervalles de rafraîchissement adaptatifs (secondes)
+_REFRESH_INTERVAL_OFF        = 300   # Éteint : 5 min
+_REFRESH_INTERVAL_ON         = 120   # Allumé stable : 2 min
+_REFRESH_INTERVAL_TRANSITION = 30    # Phases transitoires / alarme : 30s
+
+def _get_refresh_interval(json_info: dict) -> int:
+    """Retourne l'intervalle de rafraîchissement adapté à l'état courant du poêle."""
+    try:
+        stove_state = json_info['status']['state']['stove_state']
+        operational_phase = json_info['status']['state']['operational_phase']
+        if stove_state == 1 and operational_phase == 0:
+            # Éteint au repos
+            return _REFRESH_INTERVAL_OFF
+        elif stove_state == 6 and operational_phase == 2:
+            # Allumé en fonctionnement stable
+            return _REFRESH_INTERVAL_ON
+        else:
+            # Allumage, extinction, refroidissement, alarme → phases transitoires
+            return _REFRESH_INTERVAL_TRANSITION
+    except Exception:
+        return _REFRESH_INTERVAL_ON
     # (stove_state, operational_phase, sub_operational_phase): label
     # stove_state 1 = Eteint / Refroidissement
     (1, 0, 0): 'Eteint',
@@ -308,21 +328,24 @@ def read_socket():
 def listen():
     my_jeedom_socket.open()
     last_refresh = 0
+    current_interval = _REFRESH_INTERVAL_ON
     try:
         while 1:
             time.sleep(0.5)
             read_socket()
-            # Rafraîchissement autonome toutes les _refresh_interval secondes
             now = time.time()
-            if now - last_refresh >= _refresh_interval and _known_devices:
-                logging.debug('Auto-refresh des équipements connus')
+            if now - last_refresh >= current_interval and _known_devices:
+                logging.debug('Auto-refresh (interval=%ds)', current_interval)
                 for macaddress in list(_known_devices.keys()):
                     try:
                         forJeedom = {'mac_address': macaddress}
                         info = device_info(macaddress)
+                        json_info = json.loads(info)
                         forJeedom['infos'] = info
-                        forJeedom['refresh_infos'] = refresh(json.loads(info))
+                        forJeedom['refresh_infos'] = refresh(json_info)
                         my_jeedom_com.send_change_immediate(forJeedom)
+                        current_interval = _get_refresh_interval(json_info)
+                        logging.debug('Prochain refresh dans %ds', current_interval)
                     except Exception as e:
                         logging.error('Auto-refresh error for %s: %s', macaddress, e)
                 last_refresh = now
