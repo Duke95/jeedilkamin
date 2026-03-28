@@ -31,18 +31,18 @@ function getInfoCmdMapping() {
         // Températures
         'temperature'           => ['Température ambiante',  'info', 'numeric', '°C', 1],
         'target_temperature'    => ['Consigne',              'info', 'numeric', '°C', 0],
-        // Modes
+        // Modes (binaires avec actions associées)
         'is_auto'               => ['Mode AUTO',             'info', 'binary',  '',    0],
         'is_relax'              => ['Mode Relax',            'info', 'binary',  '',    0],
-        // Pellets & compteurs
-        'pellet_autonomy_time'  => ['Autonomie pellets',     'info', 'numeric', 'min', 1],
-        'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
-        // Flags
-        'is_pellet_in_reserve'  => ['Réserve pellets',       'info', 'binary',  '',    0],
-        'is_relax_active'       => ['Relax actif',           'info', 'binary',  '',    0],
+        // Modes (binaires sans action — lecture seule)
         'is_crono_active'       => ['Chrono actif',          'info', 'binary',  '',    0],
         'is_standby_active'     => ['Standby actif',         'info', 'binary',  '',    0],
         'is_airkare_active'     => ['Airkare actif',         'info', 'binary',  '',    0],
+        // Alertes
+        'is_pellet_in_reserve'  => ['Réserve pellets',       'info', 'binary',  '',    1],
+        // Pellets & compteurs
+        'pellet_autonomy_time'  => ['Autonomie pellets',     'info', 'numeric', 'min', 1],
+        'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
         // Compteurs totaux
         'power_ons'             => ['Nb allumages',          'info', 'numeric', '',    1],
     ];
@@ -50,17 +50,17 @@ function getInfoCmdMapping() {
 
 /**
  * Mapping des commandes action fixes.
- * Chaque entrée : logical_id => [label, subtype, linked_info_id, min, max]
+ * Chaque entrée : logical_id => [label, subtype, linked_info_key, min, max]
  */
 function getActionCmdMapping() {
     return [
-        'set_power_on'           => ['Power ON',             'other',  '',  0,  0],
-        'set_power_off'          => ['Power OFF',            'other',  '',  0,  0],
-        'set_auto_on'            => ['Auto ON',              'other',  '',  0,  0],
-        'set_auto_off'           => ['Auto OFF',             'other',  '',  0,  0],
-        'set_relax_on'           => ['Relax ON',             'other',  '',  0,  0],
-        'set_relax_off'          => ['Relax OFF',            'other',  '',  0,  0],
-        'set_target_temperature' => ['Température consigne', 'slider', 'target_temperature', 15, 30],
+        'set_power_on'           => ['Power ON',             'other',  'state',              0,  0],
+        'set_power_off'          => ['Power OFF',            'other',  'state',              0,  0],
+        'set_auto_on'            => ['Auto ON',              'other',  'is_auto',            0,  0],
+        'set_auto_off'           => ['Auto OFF',             'other',  'is_auto',            0,  0],
+        'set_relax_on'           => ['Relax ON',             'other',  'is_relax',           0,  0],
+        'set_relax_off'          => ['Relax OFF',            'other',  'is_relax',           0,  0],
+        'set_target_temperature' => ['Température consigne', 'slider', 'target_temperature', 16, 22],
     ];
 }
 
@@ -104,9 +104,13 @@ function createAllCommands($eqLogic, $infos)
     // Fans dynamiques selon le nombre déclaré dans le JSON
     $nbFans = $infos['nvm']['installer_parameters']['fans_number'] ?? 0;
     for ($i = 1; $i <= $nbFans; $i++) {
-        $maxSpeed = $infos['nvm']['user_parameters']['fan_' . $i . '_ventilation'] ?? 5;
+        // min/max issus du JSON : fan_X_max_level dans oem_parameters
+        // fan_1_max_level existe, fan_2+ n'ont pas de champ dédié → fallback sur fan_1_max_level
+        $maxSpeed = $infos['nvm']['oem_parameters']['fan_' . $i . '_max_level']
+                 ?? $infos['nvm']['oem_parameters']['fan_1_max_level']
+                 ?? 5;
         $fanInfoId = createCmd($eqLogic, 'fan' . $i, 'Fan ' . $i, $order++, 'info', 'numeric', '', 0, 0, '', 0);
-        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, 1, $maxSpeed);
+        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, 0, $maxSpeed);
     }
 
     // Commandes action fixes
@@ -115,9 +119,8 @@ function createAllCommands($eqLogic, $infos)
         createCmd($eqLogic, $logicalId, $label, $order++, 'action', $subType, $linkedId, $min, $max);
     }
 
-    // Puissance manuelle (max dépend du JSON)
-    $maxPower = $infos['nvm']['user_parameters']['manual_power'] ?? 5;
-    createCmd($eqLogic, 'manual_power', 'Puissance utilisateur', $order++, 'action', 'slider', '', 1, $maxPower);
+    // Puissance manuelle : min=1 (P1), max=5 (P5) — constante du protocole Edilkamin
+    createCmd($eqLogic, 'manual_power', 'Puissance utilisateur', $order++, 'action', 'slider', '', 1, 5);
 
     log::add('jeedilkamin', 'info', 'Commandes créées pour eqLogic ' . $eqLogic->getId());
 }

@@ -103,16 +103,23 @@ def refresh(info: dict):
         logging.debug('Phase key: %s', phase_key)
 
         return {
-            'state':               edilkamin.device_info_get_power(info).value,
-            'temperature':         edilkamin.device_info_get_environment_temperature(info),
-            'alarm_type':          edilkamin.device_info_get_alarm_reset(info),
-            'manual_power_level':  edilkamin.device_info_get_manual_power_level(info),
+            'state':                edilkamin.device_info_get_power(info).value,
+            'temperature':          edilkamin.device_info_get_environment_temperature(info),
+            'alarm_type':           edilkamin.device_info_get_alarm_reset(info),
+            'manual_power_level':   edilkamin.device_info_get_manual_power_level(info),
             'pellet_autonomy_time': edilkamin.device_info_get_autonomy_time(info),
-            'actual_power':        state['actual_power'],
-            'is_auto':             info['nvm']['user_parameters']['is_auto'],
-            'is_relax':            edilkamin.device_info_get_relax_mode(info),
-            'target_temperature':  edilkamin.device_info_get_target_temperature(info),
-            'phase':               _PHASE_MAP.get(phase_key, 'Inconnu'),
+            'actual_power':         state['actual_power'],
+            'is_auto':              info['nvm']['user_parameters']['is_auto'],
+            'is_relax':             edilkamin.device_info_get_relax_mode(info),
+            'target_temperature':   edilkamin.device_info_get_target_temperature(info),
+            'phase':                _PHASE_MAP.get(phase_key, 'Inconnu'),
+            # Compteurs
+            'power_ons':            info['nvm']['total_counters']['power_ons'],
+            # Flags
+            'is_pellet_in_reserve': info['status']['flags']['is_pellet_in_reserve'],
+            'is_crono_active':      info['status']['flags']['is_crono_active'],
+            'is_standby_active':    info['nvm']['user_parameters']['is_standby_active'],
+            'is_airkare_active':    info['status']['flags']['is_airkare_active'],
             **{f'fan{i+1}': edilkamin.device_info_get_fan_speed(info, i+1) for i in range(nb_fans)},
         }
     except Exception as e:
