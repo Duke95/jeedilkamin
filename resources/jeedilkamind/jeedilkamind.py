@@ -18,6 +18,7 @@ import sys
 import os
 import time
 import asyncio
+import inspect
 import traceback
 import signal
 import json
@@ -59,7 +60,8 @@ async def _login_async(username, password):
     """Login and return token."""
     global _token
     try:
-        _token = await edilkamin.sign_in(username, password)
+        # sign_in est synchrone dans la lib edilkamin
+        _token = edilkamin.sign_in(username, password)
         logging.info("Logged in to Edilkamin API")
     except Exception as e:
         logging.error("Login failed: %s", e)
@@ -67,7 +69,11 @@ async def _login_async(username, password):
 async def _device_info_async(macaddress):
     try:
         await _ensure_valid_token_async()
-        return json.dumps(await edilkamin.device_info(_token, macaddress)).replace('\\', '')
+        result = edilkamin.device_info(_token, macaddress)
+        # device_info peut être sync ou async selon la version de la lib
+        if inspect.isawaitable(result):
+            result = await result
+        return json.dumps(result).replace('\\', '')
     except Exception as e:
         logging.error("[device_info] error: %s", e)
     return None
@@ -112,9 +118,11 @@ def refresh(info: dict):
     except Exception as e:
         logging.error('[Refresh] %s', e)
 
-def _run(coro):
-    """Exécute une coroutine edilkamin de façon synchrone."""
-    return asyncio.run(coro)
+def _run(result):
+    """Exécute une coroutine edilkamin si async, sinon retourne le résultat directement."""
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    return result
 
 def device_info_json(macaddress):
     """Retourne les infos du device sous forme de dict."""
