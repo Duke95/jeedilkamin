@@ -17,61 +17,59 @@
  */
 
 /**
- * Mapping déclaratif des commandes info à créer automatiquement.
+ * Ordre optimisé pour l'affichage dashboard Jeedom.
  * Chaque entrée : logical_id => [label, type, subtype, unite, historized]
- * Les commandes dynamiques (fans) sont gérées séparément.
  */
 function getInfoCmdMapping() {
     return [
-        // État général
-        'state'                 => ['Etat',                  'info', 'binary',  '',    0],
-        'phase'                 => ['Phase',                 'info', 'string',  '',    0],
-        'actual_power'          => ['Puissance',             'info', 'numeric', '',    1],
-        'alarm_type'            => ['Alarme',                'info', 'numeric', '',    0],
-        // Températures
-        'temperature'           => ['Température ambiante',  'info', 'numeric', '°C', 1],
-        'target_temperature'    => ['Consigne',              'info', 'numeric', '°C', 0],
-        // Modes (binaires avec actions associées)
-        'is_auto'               => ['Mode AUTO',             'info', 'binary',  '',    0],
-        'is_relax'              => ['Mode Relax',            'info', 'binary',  '',    0],
-        // Modes (binaires sans action — lecture seule)
-        'is_crono_active'       => ['Chrono actif',          'info', 'binary',  '',    0],
-        'is_standby_active'     => ['Standby actif',         'info', 'binary',  '',    0],
-        'is_airkare_active'     => ['Airkare actif',         'info', 'binary',  '',    0],
-        // Alertes
-        'is_pellet_in_reserve'  => ['Réserve pellets',       'info', 'binary',  '',    1],
-        'is_cat_service_required' => ['Entretien requis',    'info', 'binary',  '',    0],
-        'is_cleaning_in_progress' => ['Nettoyage en cours',  'info', 'binary',  '',    0],
-        // Températures supplémentaires
-        'thermocouple'          => ['Température fumées',    'info', 'numeric', '°C',  1],
-        'board_temperature'     => ['Température carte',     'info', 'numeric', '°C',  0],
-        // Pression
-        'air_pressure'          => ['Pression air',          'info', 'numeric', 'Pa',  1],
-        // Réseau — wifi_signal vaut 0 quand non mesuré, non fiable
-        // 'wifi_signal' => ['Signal WiFi', 'info', 'numeric', '', 0],
-        // Pellets & compteurs
-        'pellet_autonomy_time'  => ['Autonomie pellets',     'info', 'numeric', 'min', 1],
-        'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
-        // Compteurs totaux
-        'power_ons'             => ['Nb allumages',          'info', 'numeric', '',    1],
-        // Maintenance
-        'last_refresh'          => ['Dernier rafraîchissement', 'info', 'string', '', 0],
+        // --- Bloc 1 : État principal ---
+        'state'                   => ['Etat',                    'info', 'binary',  '',    0],
+        'phase'                   => ['Phase',                   'info', 'string',  '',    0],
+        // --- Bloc 2 : Températures ---
+        'temperature'             => ['Température ambiante',    'info', 'numeric', '°C',  1],
+        'target_temperature'      => ['Consigne',                'info', 'numeric', '°C',  0],
+        // --- Bloc 3 : Puissance ---
+        'actual_power'            => ['Puissance',               'info', 'numeric', '',    1],
+        'manual_power_level'      => ['Puissance manuelle',      'info', 'numeric', '',    0],
+        // --- Bloc 4 : Modes ---
+        'is_auto'                 => ['Mode AUTO',               'info', 'binary',  '',    0],
+        'is_relax'                => ['Mode Relax',              'info', 'binary',  '',    0],
+        // --- Bloc 5 : Alertes ---
+        'is_pellet_in_reserve'    => ['Réserve pellets',         'info', 'binary',  '',    1],
+        'is_cat_service_required' => ['Entretien requis',        'info', 'binary',  '',    0],
+        'alarm_type'              => ['Alarme',                  'info', 'numeric', '',    0],
+        'is_cleaning_in_progress' => ['Nettoyage en cours',      'info', 'binary',  '',    0],
+        // --- Bloc 6 : Mesures ---
+        'thermocouple'            => ['Température fumées',      'info', 'numeric', '°C',  1],
+        'air_pressure'            => ['Pression air',            'info', 'numeric', 'Pa',  1],
+        'pellet_autonomy_time'    => ['Autonomie pellets',       'info', 'numeric', 'min', 1],
+        // --- Bloc 7 : Infos secondaires ---
+        'is_crono_active'         => ['Chrono actif',            'info', 'binary',  '',    0],
+        'is_standby_active'       => ['Standby actif',           'info', 'binary',  '',    0],
+        'is_airkare_active'       => ['Airkare actif',           'info', 'binary',  '',    0],
+        'board_temperature'       => ['Température carte',       'info', 'numeric', '°C',  0],
+        'power_ons'               => ['Nb allumages',            'info', 'numeric', '',    1],
+        'last_refresh'            => ['Dernier rafraîchissement','info', 'string',  '',    0],
     ];
 }
 
 /**
  * Mapping des commandes action fixes.
+ * Ordre calqué sur les blocs info pour cohérence dashboard.
  * Chaque entrée : logical_id => [label, subtype, linked_info_key, min, max]
  */
 function getActionCmdMapping() {
     return [
+        // --- Bloc 1 : Contrôle principal ---
         'set_power_on'           => ['Power ON',             'other',  'state',              0,  0],
         'set_power_off'          => ['Power OFF',            'other',  'state',              0,  0],
+        // --- Bloc 2 : Température ---
+        'set_target_temperature' => ['Température consigne', 'slider', 'target_temperature', 16, 22],
+        // --- Bloc 4 : Modes ---
         'set_auto_on'            => ['Auto ON',              'other',  'is_auto',            0,  0],
         'set_auto_off'           => ['Auto OFF',             'other',  'is_auto',            0,  0],
         'set_relax_on'           => ['Relax ON',             'other',  'is_relax',           0,  0],
         'set_relax_off'          => ['Relax OFF',            'other',  'is_relax',           0,  0],
-        'set_target_temperature' => ['Température consigne', 'slider', 'target_temperature', 16, 22],
     ];
 }
 
@@ -107,39 +105,65 @@ function createAllCommands($eqLogic, $infos)
     $order = 0;
     $cmdIds = [];
 
-    // Commandes info fixes
-    foreach (getInfoCmdMapping() as $logicalId => [$label, $type, $subType, $unite, $historized]) {
-        $cmdIds[$logicalId] = createCmd($eqLogic, $logicalId, $label, $order++, $type, $subType, '', 0, 0, $unite, $historized);
-    }
+    // Bloc 1 : État + actions power (intercalées pour cohérence dashboard)
+    $cmdIds['state'] = createCmd($eqLogic, 'state', 'Etat', $order++, 'info', 'binary', '', 0, 0, '', 0);
+    createCmd($eqLogic, 'set_power_on',  'Power ON',  $order++, 'action', 'other', $cmdIds['state']);
+    createCmd($eqLogic, 'set_power_off', 'Power OFF', $order++, 'action', 'other', $cmdIds['state']);
+    createCmd($eqLogic, 'phase', 'Phase', $order++, 'info', 'string', '', 0, 0, '', 0);
 
-    // Fans dynamiques selon le nombre déclaré dans le JSON
-    $nbFans = $infos['nvm']['installer_parameters']['fans_number'] ?? 0;
-    for ($i = 1; $i <= $nbFans; $i++) {
-        // fan_X_max_level est un index 0-based → max réel = valeur + 1
-        $maxLevel = $infos['nvm']['oem_parameters']['fan_' . $i . '_max_level']
-                 ?? $infos['nvm']['oem_parameters']['fan_1_max_level']
-                 ?? 4;
-        $maxSpeed = $maxLevel + 1;
-        // fan_engine_type 2 = ventilateur principal (min=1, ne peut pas s'arrêter)
-        // fan_engine_type 4 = ventilateur canalisé (min=0, peut être coupé)
-        $engineType = $infos['nvm']['oem_parameters']['fan_' . $i . '_engine_type'] ?? 4;
-        $minSpeed = ($engineType == 2) ? 1 : 0;
-        $fanInfoId = createCmd($eqLogic, 'fan' . $i, 'Fan ' . $i, $order++, 'info', 'numeric', '', 0, 0, '', 0);
-        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, $minSpeed, $maxSpeed);
-    }
+    // Bloc 2 : Températures + consigne
+    $cmdIds['temperature']      = createCmd($eqLogic, 'temperature',      'Température ambiante', $order++, 'info', 'numeric', '', 0, 0, '°C', 1);
+    $cmdIds['target_temperature']= createCmd($eqLogic, 'target_temperature','Consigne',            $order++, 'info', 'numeric', '', 0, 0, '°C', 0);
+    createCmd($eqLogic, 'set_target_temperature', 'Température consigne', $order++, 'action', 'slider', $cmdIds['target_temperature'], 16, 22);
 
-    // Commandes action fixes
-    foreach (getActionCmdMapping() as $logicalId => [$label, $subType, $linkedKey, $min, $max]) {
-        $linkedId = ($linkedKey !== '' && isset($cmdIds[$linkedKey])) ? $cmdIds[$linkedKey] : '';
-        createCmd($eqLogic, $logicalId, $label, $order++, 'action', $subType, $linkedId, $min, $max);
-    }
-
-    // Puissance manuelle : min=1, max déduit du nombre de niveaux P dans cat_parameters
+    // Bloc 3 : Puissance + slider
+    $cmdIds['actual_power']     = createCmd($eqLogic, 'actual_power',     'Puissance',            $order++, 'info', 'numeric', '', 0, 0, '',    1);
+    createCmd($eqLogic, 'manual_power_level', 'Puissance manuelle', $order++, 'info', 'numeric', '', 0, 0, '', 0);
     $maxPower = 1;
     while (isset($infos['nvm']['cat_parameters']['fan_activation_enviroment_1_p' . ($maxPower + 1)])) {
         $maxPower++;
     }
     createCmd($eqLogic, 'manual_power', 'Puissance utilisateur', $order++, 'action', 'slider', '', 1, $maxPower);
+
+    // Bloc 4 : Modes AUTO + Relax
+    $cmdIds['is_auto']  = createCmd($eqLogic, 'is_auto',  'Mode AUTO',  $order++, 'info', 'binary', '', 0, 0, '', 0);
+    createCmd($eqLogic, 'set_auto_on',  'Auto ON',  $order++, 'action', 'other', $cmdIds['is_auto']);
+    createCmd($eqLogic, 'set_auto_off', 'Auto OFF', $order++, 'action', 'other', $cmdIds['is_auto']);
+    $cmdIds['is_relax'] = createCmd($eqLogic, 'is_relax', 'Mode Relax', $order++, 'info', 'binary', '', 0, 0, '', 0);
+    createCmd($eqLogic, 'set_relax_on',  'Relax ON',  $order++, 'action', 'other', $cmdIds['is_relax']);
+    createCmd($eqLogic, 'set_relax_off', 'Relax OFF', $order++, 'action', 'other', $cmdIds['is_relax']);
+
+    // Bloc 5 : Fans dynamiques
+    $nbFans = $infos['nvm']['installer_parameters']['fans_number'] ?? 0;
+    for ($i = 1; $i <= $nbFans; $i++) {
+        $maxLevel   = $infos['nvm']['oem_parameters']['fan_' . $i . '_max_level']
+                   ?? $infos['nvm']['oem_parameters']['fan_1_max_level']
+                   ?? 4;
+        $maxSpeed   = $maxLevel + 1;
+        $engineType = $infos['nvm']['oem_parameters']['fan_' . $i . '_engine_type'] ?? 4;
+        $minSpeed   = ($engineType == 2) ? 1 : 0;
+        $fanInfoId  = createCmd($eqLogic, 'fan' . $i, 'Fan ' . $i, $order++, 'info', 'numeric', '', 0, 0, '', 0);
+        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, $minSpeed, $maxSpeed);
+    }
+
+    // Bloc 6 : Alertes
+    createCmd($eqLogic, 'is_pellet_in_reserve',    'Réserve pellets',    $order++, 'info', 'binary',  '', 0, 0, '', 1);
+    createCmd($eqLogic, 'is_cat_service_required', 'Entretien requis',   $order++, 'info', 'binary',  '', 0, 0, '', 0);
+    createCmd($eqLogic, 'alarm_type',              'Alarme',             $order++, 'info', 'numeric', '', 0, 0, '', 0);
+    createCmd($eqLogic, 'is_cleaning_in_progress', 'Nettoyage en cours', $order++, 'info', 'binary',  '', 0, 0, '', 0);
+
+    // Bloc 7 : Mesures
+    createCmd($eqLogic, 'thermocouple',         'Température fumées', $order++, 'info', 'numeric', '', 0, 0, '°C',  1);
+    createCmd($eqLogic, 'air_pressure',         'Pression air',       $order++, 'info', 'numeric', '', 0, 0, 'Pa',  1);
+    createCmd($eqLogic, 'pellet_autonomy_time', 'Autonomie pellets',  $order++, 'info', 'numeric', '', 0, 0, 'min', 1);
+
+    // Bloc 8 : Infos secondaires
+    createCmd($eqLogic, 'is_crono_active',   'Chrono actif',            $order++, 'info', 'binary',  '', 0, 0, '', 0);
+    createCmd($eqLogic, 'is_standby_active', 'Standby actif',           $order++, 'info', 'binary',  '', 0, 0, '', 0);
+    createCmd($eqLogic, 'is_airkare_active', 'Airkare actif',           $order++, 'info', 'binary',  '', 0, 0, '', 0);
+    createCmd($eqLogic, 'board_temperature', 'Température carte',       $order++, 'info', 'numeric', '', 0, 0, '°C', 0);
+    createCmd($eqLogic, 'power_ons',         'Nb allumages',            $order++, 'info', 'numeric', '', 0, 0, '',   1);
+    createCmd($eqLogic, 'last_refresh',      'Dernier rafraîchissement',$order++, 'info', 'string',  '', 0, 0, '',   0);
 
     log::add('jeedilkamin', 'info', 'Commandes créées pour eqLogic ' . $eqLogic->getId());
 }
