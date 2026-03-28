@@ -311,6 +311,7 @@ def _get_handler(action):
     return None
 
 def read_socket():
+    global _last_refresh, _current_interval
     if JEEDOM_SOCKET_MESSAGE.empty():
         return
     logging.debug("Message received in socket JEEDOM_SOCKET_MESSAGE")
@@ -337,8 +338,12 @@ def read_socket():
         if 'infos' not in forJeedom:
             time.sleep(1.0)
             info = device_info(message['macaddress'])
+            json_info = json.loads(info)
             forJeedom['infos'] = info
-            forJeedom['refresh_infos'] = refresh(json.loads(info))
+            forJeedom['refresh_infos'] = refresh(json_info)
+            # Synchroniser le timer autonome pour éviter un double refresh
+            _current_interval = _get_refresh_interval(json_info)
+            _last_refresh = time.time()
         my_jeedom_com.send_change_immediate(forJeedom)
     except Exception as e:
         logging.error('Send command to demon error: %s', e)
