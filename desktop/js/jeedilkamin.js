@@ -27,10 +27,12 @@ $("#table_cmd").sortable({
 /* Ouvre la modal historique des alarmes */
 $(document).on('click', '#bt_alarmHistory', function () {
   var eqLogicId = $('.eqLogicAttr[data-l1key=id]').value()
+  console.log('[jeedilkamin] bt_alarmHistory clicked, eqLogicId=', eqLogicId)
   $('#md_modal').dialog({ title: '{{Historique des alarmes}}' })
   $('#md_modal').load(
     'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin&eqLogic_id=' + eqLogicId,
     function () {
+      console.log('[jeedilkamin] modal loaded')
       $('#md_modal').dialog('open')
     }
   )
