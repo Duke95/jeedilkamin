@@ -1,13 +1,13 @@
 {
   "enabled": true,
   "name": "Auto Git Commit",
-  "description": "Commit automatique de tous les fichiers modifiés après chaque session agent",
+  "description": "Commit automatique de tous les fichiers modifiés après chaque session agent avec un message explicite",
   "version": "1",
   "when": {
     "type": "agentStop"
   },
   "then": {
-    "type": "runCommand",
-    "command": "sleep 2 && git add -A && git diff --cached --quiet || git commit -m \"chore: auto-commit modifications Kiro\""
+    "type": "askAgent",
+    "prompt": "Regarde les fichiers modifiés avec `git diff --cached --name-only` après avoir fait `git add -A`, rédige un message de commit concis en français qui résume ce que tu as fait durant cette session (format: 'type: description'), puis exécute le commit avec ce message. Si rien n'est à commiter, ne fais rien."
   }
 }
