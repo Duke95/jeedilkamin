@@ -8,6 +8,6 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "git add -A && git diff --cached --quiet || git commit -m \"chore: auto-commit modifications Kiro\""
+    "command": "sleep 2 && git add -A && git diff --cached --quiet || git commit -m \"chore: auto-commit modifications Kiro\""
   }
 }
