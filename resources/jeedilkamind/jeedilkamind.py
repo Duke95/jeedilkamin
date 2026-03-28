@@ -202,8 +202,8 @@ def refresh(info: dict):
             'board_temperature':      info['status']['temperatures']['board'],
             # Pression air
             'air_pressure':           info['status']['air_pressure']['value_in_pascal'],
-            # Réseau
-            'wifi_signal':            info['status']['flags']['wifi_signal'],
+            # Réseau — wifi_signal vaut 0 quand non mesuré, non fiable
+            # 'wifi_signal': info['status']['flags']['wifi_signal'],
             **{f'fan{i+1}': edilkamin.device_info_get_fan_speed(info, i+1) for i in range(nb_fans)},
         }
     except Exception as e:

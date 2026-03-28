@@ -47,8 +47,8 @@ function getInfoCmdMapping() {
         'board_temperature'     => ['Température carte',     'info', 'numeric', '°C',  0],
         // Pression
         'air_pressure'          => ['Pression air',          'info', 'numeric', 'Pa',  1],
-        // Réseau
-        'wifi_signal'           => ['Signal WiFi',           'info', 'numeric', '',    0],
+        // Réseau — wifi_signal vaut 0 quand non mesuré, non fiable
+        // 'wifi_signal' => ['Signal WiFi', 'info', 'numeric', '', 0],
         // Pellets & compteurs
         'pellet_autonomy_time'  => ['Autonomie pellets',     'info', 'numeric', 'min', 1],
         'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
