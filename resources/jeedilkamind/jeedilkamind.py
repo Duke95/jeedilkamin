@@ -87,12 +87,63 @@ def login(username, password):
 def device_info(macaddress):
     return asyncio.run(_device_info_async(macaddress))
 
+_ALARM_TYPE_MAP = {
+    0:  'Aucune alarme',
+    1:  'Entrée d\'air insuffisante',
+    2:  'RPM ventilateur fumées incorrect',
+    3:  'Pas de flamme',
+    4:  'Échec allumage',
+    5:  'Capteur débit d\'air défaillant',
+    6:  'Thermocouple défaillant',
+    7:  'Température fumées trop élevée',
+    8:  'Température poêle trop élevée',
+    9:  'Moto-réducteur défaillant',
+    10: 'Carte électronique trop chaude',
+    11: 'Pression cheminée',
+    12: 'Sonde température ambiante défaillante (1)',
+    13: 'Sonde température ambiante défaillante (2)',
+    14: 'Sonde température ambiante défaillante (3)',
+    20: 'Triac moto-réducteur défaillant',
+    21: 'Coupure de courant',
+}
+_MAX_ALARMS_DISPLAY = 5
+
+def _format_last_alarms(alarms_log: dict) -> str:
+    """Retourne les N dernières alarmes non nulles sous forme lisible."""
+    from datetime import datetime
+    alarms = [a for a in alarms_log.get('alarms', []) if a['timestamp'] > 0]
+    alarms_sorted = sorted(alarms, key=lambda a: a['timestamp'], reverse=True)
+    lines = []
+    for alarm in alarms_sorted[:_MAX_ALARMS_DISPLAY]:
+        dt = datetime.fromtimestamp(alarm['timestamp']).strftime('%d/%m/%Y %H:%M')
+        label = _ALARM_TYPE_MAP.get(alarm['type'], f"Type {alarm['type']}")
+        lines.append(f"{dt} - {label}")
+    return '\n'.join(lines) if lines else 'Aucune alarme'
+
 _PHASE_MAP = {
-    (6, 1, 1): 'Allumage : Nettoyage sans nettoyeur',
-    (6, 2, 2): 'Allumé',
-    (6, 1, 3): 'Allumage : Chargement pellets',
+    # (stove_state, operational_phase, sub_operational_phase): label
+    # stove_state 1 = Eteint / Refroidissement
     (1, 0, 0): 'Eteint',
     (1, 3, 0): 'Refroidissement',
+    # stove_state 2 = Extinction
+    (2, 0, 0): 'Extinction',
+    # stove_state 3 = Arrêt
+    (3, 0, 0): 'Arrêt',
+    # stove_state 4 = Refroidissement final
+    (4, 0, 0): 'Refroidissement final',
+    # stove_state 5 = Alarme
+    (5, 0, 0): 'Alarme',
+    # stove_state 6 = En fonctionnement
+    (6, 1, 1): 'Allumage : Nettoyage',
+    (6, 1, 2): 'Allumage : Préchauffage',
+    (6, 1, 3): 'Allumage : Chargement pellets',
+    (6, 1, 4): 'Allumage : Attente flamme',
+    (6, 2, 1): 'Allumé : Montée en puissance',
+    (6, 2, 2): 'Allumé',
+    (6, 2, 3): 'Allumé : Modulation',
+    (6, 3, 0): 'Nettoyage en cours',
+    # stove_state 7 = Nettoyage final
+    (7, 0, 0): 'Nettoyage final',
 }
 
 def refresh(info: dict):
@@ -115,6 +166,8 @@ def refresh(info: dict):
             'phase':                _PHASE_MAP.get(phase_key, 'Inconnu'),
             # Compteurs
             'power_ons':            info['nvm']['total_counters']['power_ons'],
+            # Alarmes
+            'last_alarms':          _format_last_alarms(info['nvm']['alarms_log']),
             # Flags
             'is_pellet_in_reserve': info['status']['flags']['is_pellet_in_reserve'],
             'is_crono_active':      info['status']['flags']['is_crono_active'],
