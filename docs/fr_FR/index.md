@@ -10,6 +10,8 @@ Plugin permettant de contrôler les poêles à pellets Edilkamin via l'API cloud
 - Le poêle connecté au WiFi et visible dans l'application
 - L'adresse MAC WiFi du poêle (visible dans l'app : Paramètres → Logiciel → MAC MQTT)
 
+> Testé sur **Edilkamin Blade Up** (firmware 2.1.211117a, 2 ventilateurs canalisés).
+
 ## Configuration du plugin
 
 Une fois le plugin installé, renseignez vos informations de connexion dans la page de configuration :
