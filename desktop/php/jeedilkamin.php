@@ -65,6 +65,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 				<a class="btn btn-sm btn-default eqLogicAction roundedLeft" data-action="configure"><i class="fas fa-cogs"></i><span class="hidden-xs"> {{Configuration avancée}}</span>
 				</a><a class="btn btn-sm btn-default eqLogicAction" data-action="copy"><i class="fas fa-copy"></i><span class="hidden-xs"> {{Dupliquer}}</span>
 				</a><a class="btn btn-sm btn-warning" id="bt_alarmHistory" onclick="openAlarmModal()"><i class="fas fa-exclamation-triangle"></i><span class="hidden-xs"> {{Alarmes}}</span>
+				</a><a class="btn btn-sm btn-info" id="bt_counters" onclick="openCountersModal()"><i class="fas fa-tachometer-alt"></i><span class="hidden-xs"> {{Compteurs}}</span>
 				</a><a class="btn btn-sm btn-success eqLogicAction" data-action="save"><i class="fas fa-check-circle"></i> {{Sauvegarder}}
 				</a><a class="btn btn-sm btn-danger eqLogicAction roundedRight" data-action="remove"><i class="fas fa-minus-circle"></i> {{Supprimer}}
 				</a>
@@ -201,9 +202,15 @@ function openAlarmModal() {
   $('#md_modal').dialog({ title: '{{Historique des alarmes}}' })
   $('#md_modal').load(
     'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin&eqLogic_id=' + eqLogicId,
-    function () {
-      $('#md_modal').dialog('open')
-    }
+    function () { $('#md_modal').dialog('open') }
+  )
+}
+function openCountersModal() {
+  var eqLogicId = $('.eqLogicAttr[data-l1key=id]').value()
+  $('#md_modal').dialog({ title: '{{Compteurs}}' })
+  $('#md_modal').load(
+    'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin.counters&eqLogic_id=' + eqLogicId,
+    function () { $('#md_modal').dialog('open') }
   )
 }
 </script>

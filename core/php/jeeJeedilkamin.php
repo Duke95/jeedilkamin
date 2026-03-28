@@ -183,6 +183,11 @@ try {
         }
         // Stockage du log d'alarmes pour affichage dans la modal
         $eqLogic->setConfiguration('alarms_log', json_encode($infos['nvm']['alarms_log'] ?? []));
+        // Stockage des compteurs pour affichage dans la modal
+        $eqLogic->setConfiguration('counters_log', json_encode([
+            'total_counters'   => $infos['nvm']['total_counters']   ?? [],
+            'service_counters' => $infos['nvm']['service_counters'] ?? [],
+        ]));
         $eqLogic->save();
     }
 
