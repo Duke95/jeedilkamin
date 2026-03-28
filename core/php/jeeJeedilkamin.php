@@ -45,8 +45,6 @@ function getInfoCmdMapping() {
         'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
         // Compteurs totaux
         'power_ons'             => ['Nb allumages',          'info', 'numeric', '',    1],
-        // Alarmes
-        'last_alarms'           => ['Dernières alarmes',     'info', 'string',  '',    0],
     ];
 }
 
@@ -172,6 +170,9 @@ try {
         foreach (($result['refresh_infos'] ?? []) as $key => $value) {
             $eqLogic->checkAndUpdateCmd($key, $value);
         }
+        // Stockage du log d'alarmes pour affichage dans la modal
+        $eqLogic->setConfiguration('alarms_log', json_encode($infos['nvm']['alarms_log'] ?? []));
+        $eqLogic->save();
     }
 
 } catch (Exception $e) {

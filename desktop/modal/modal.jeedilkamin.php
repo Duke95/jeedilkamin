@@ -1,32 +1,18 @@
 <?php
 /* This file is part of Jeedom.
- *
- * Jeedom is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Jeedom is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
+ * Jeedom is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  */
 
 if (!isConnect('admin')) {
     throw new Exception('{{401 - Accès non autorisé}}');
 }
 
-$eqLogicId = init('eqLogic_id');
-$eqLogic = eqLogic::byId($eqLogicId);
+$eqLogic = eqLogic::byId(init('eqLogic_id'));
 if (!is_object($eqLogic)) {
     throw new Exception('{{Équipement introuvable}}');
 }
 
 $alarmTypes = [
-    0  => 'Aucune alarme',
     1  => 'Entrée d\'air insuffisante',
     2  => 'RPM ventilateur fumées incorrect',
     3  => 'Pas de flamme',
@@ -45,52 +31,57 @@ $alarmTypes = [
     21 => 'Coupure de courant',
 ];
 
-// Récupération du dernier JSON connu via la commande last_alarms
-$cmdInfo = $eqLogic->getCmd('info', 'alarm_type');
-$nbAlarms = is_object($cmdInfo) ? $cmdInfo->execCmd() : '?';
+$alarmsLog = json_decode($eqLogic->getConfiguration('alarms_log', '{}'), true);
+$alarms = array_filter($alarmsLog['alarms'] ?? [], fn($a) => $a['timestamp'] > 0);
+usort($alarms, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
+
+// Grouper par année
+$byYear = [];
+foreach ($alarms as $alarm) {
+    $year = date('Y', $alarm['timestamp']);
+    $byYear[$year][] = $alarm;
+}
+krsort($byYear);
 ?>
+<legend><i class="fas fa-exclamation-triangle"></i> {{Historique des alarmes}} — <?php echo htmlspecialchars($eqLogic->getName()); ?></legend>
+<p class="text-muted">
+    <?php echo sprintf('{{Total : %d alarmes enregistrées}}', count($alarms)); ?>
+</p>
 
-<div>
-    <legend><i class="fas fa-exclamation-triangle"></i> {{Historique des alarmes}} — <?php echo htmlspecialchars($eqLogic->getName()); ?></legend>
-    <p class="text-muted">
-        <?php echo sprintf('{{Nombre total d\'alarmes enregistrées : %s}}', $nbAlarms); ?>
-    </p>
-
-    <div class="table-responsive">
-        <table class="table table-bordered table-condensed table-striped">
-            <thead>
-                <tr>
-                    <th style="width:50px;">{{Type}}</th>
-                    <th>{{Description}}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($alarmTypes as $code => $label) :
-                    if ($code === 0) continue; ?>
-                <tr>
-                    <td><span class="label label-default"><?php echo $code; ?></span></td>
-                    <td><?php echo htmlspecialchars($label); ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+<?php if (empty($byYear)) : ?>
+    <p class="text-success"><i class="fas fa-check-circle"></i> {{Aucune alarme enregistrée}}</p>
+<?php else : ?>
+    <div class="panel-group" id="accordion_alarms">
+    <?php foreach ($byYear as $year => $yearAlarms) : ?>
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor:pointer;" data-toggle="collapse" data-target="#collapse_<?php echo $year; ?>">
+                <h4 class="panel-title">
+                    <i class="fas fa-calendar"></i>
+                    <?php echo $year; ?>
+                    <span class="badge pull-right"><?php echo count($yearAlarms); ?></span>
+                </h4>
+            </div>
+            <div id="collapse_<?php echo $year; ?>" class="panel-collapse collapse <?php echo ($year == date('Y')) ? 'in' : ''; ?>">
+                <table class="table table-bordered table-condensed table-striped" style="margin-bottom:0;">
+                    <thead>
+                        <tr>
+                            <th style="width:160px;">{{Date}}</th>
+                            <th style="width:60px;">{{Code}}</th>
+                            <th>{{Description}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($yearAlarms as $alarm) : ?>
+                        <tr>
+                            <td><?php echo date('d/m/Y H:i', $alarm['timestamp']); ?></td>
+                            <td><span class="label label-warning"><?php echo $alarm['type']; ?></span></td>
+                            <td><?php echo htmlspecialchars($alarmTypes[$alarm['type']] ?? 'Type inconnu (' . $alarm['type'] . ')'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php endforeach; ?>
     </div>
-
-    <legend><i class="fas fa-history"></i> {{Dernières alarmes}}</legend>
-    <div id="div_alarmHistory">
-        <?php
-        $lastAlarmsCmd = $eqLogic->getCmd('info', 'last_alarms');
-        $lastAlarms = is_object($lastAlarmsCmd) ? $lastAlarmsCmd->execCmd() : '';
-        if (empty($lastAlarms)) {
-            echo '<p class="text-success"><i class="fas fa-check-circle"></i> {{Aucune alarme récente}}</p>';
-        } else {
-            $lines = explode("\n", $lastAlarms);
-            echo '<ul class="list-group">';
-            foreach ($lines as $line) {
-                echo '<li class="list-group-item"><i class="fas fa-exclamation-circle text-warning"></i> ' . htmlspecialchars($line) . '</li>';
-            }
-            echo '</ul>';
-        }
-        ?>
-    </div>
-</div>
+<?php endif; ?>
