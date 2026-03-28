@@ -40,6 +40,15 @@ function getInfoCmdMapping() {
         'is_airkare_active'     => ['Airkare actif',         'info', 'binary',  '',    0],
         // Alertes
         'is_pellet_in_reserve'  => ['Réserve pellets',       'info', 'binary',  '',    1],
+        'is_cat_service_required' => ['Entretien requis',    'info', 'binary',  '',    0],
+        'is_cleaning_in_progress' => ['Nettoyage en cours',  'info', 'binary',  '',    0],
+        // Températures supplémentaires
+        'thermocouple'          => ['Température fumées',    'info', 'numeric', '°C',  1],
+        'board_temperature'     => ['Température carte',     'info', 'numeric', '°C',  0],
+        // Pression
+        'air_pressure'          => ['Pression air',          'info', 'numeric', 'Pa',  1],
+        // Réseau
+        'wifi_signal'           => ['Signal WiFi',           'info', 'numeric', '',    0],
         // Pellets & compteurs
         'pellet_autonomy_time'  => ['Autonomie pellets',     'info', 'numeric', 'min', 1],
         'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],

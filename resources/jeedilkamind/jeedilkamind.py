@@ -191,10 +191,19 @@ def refresh(info: dict):
             # Maintenance
             'last_refresh':         datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
             # Flags
-            'is_pellet_in_reserve': info['status']['flags']['is_pellet_in_reserve'],
-            'is_crono_active':      info['status']['flags']['is_crono_active'],
-            'is_standby_active':    info['nvm']['user_parameters']['is_standby_active'],
-            'is_airkare_active':    info['status']['flags']['is_airkare_active'],
+            'is_pellet_in_reserve':   info['status']['flags']['is_pellet_in_reserve'],
+            'is_cat_service_required': info['status']['flags']['is_cat_service_required'],
+            'is_cleaning_in_progress': info['status']['flags']['is_cleaning_in_progress'],
+            'is_crono_active':        info['status']['flags']['is_crono_active'],
+            'is_standby_active':      info['nvm']['user_parameters']['is_standby_active'],
+            'is_airkare_active':      info['status']['flags']['is_airkare_active'],
+            # Températures supplémentaires
+            'thermocouple':           info['status']['temperatures']['thermocouple'],
+            'board_temperature':      info['status']['temperatures']['board'],
+            # Pression air
+            'air_pressure':           info['status']['air_pressure']['value_in_pascal'],
+            # Réseau
+            'wifi_signal':            info['status']['flags']['wifi_signal'],
             **{f'fan{i+1}': edilkamin.device_info_get_fan_speed(info, i+1) for i in range(nb_fans)},
         }
     except Exception as e:
