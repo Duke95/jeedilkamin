@@ -166,6 +166,8 @@ def refresh(info: dict):
             'phase':                _PHASE_MAP.get(phase_key, 'Inconnu'),
             # Compteurs
             'power_ons':            info['nvm']['total_counters']['power_ons'],
+            # Maintenance
+            'last_refresh':         datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
             # Flags
             'is_pellet_in_reserve': info['status']['flags']['is_pellet_in_reserve'],
             'is_crono_active':      info['status']['flags']['is_crono_active'],

@@ -45,6 +45,8 @@ function getInfoCmdMapping() {
         'manual_power_level'    => ['Puissance manuelle',    'info', 'numeric', '',    0],
         // Compteurs totaux
         'power_ons'             => ['Nb allumages',          'info', 'numeric', '',    1],
+        // Maintenance
+        'last_refresh'          => ['Dernier rafraîchissement', 'info', 'string', '', 0],
     ];
 }
 
