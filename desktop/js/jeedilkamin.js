@@ -27,11 +27,13 @@ $("#table_cmd").sortable({
 /* Ouvre la modal historique des alarmes */
 $(document).on('click', '#bt_alarmHistory', function () {
   var eqLogicId = $('.eqLogicAttr[data-l1key=id]').value()
-  $('#md_modal').dialog({
-    title: '{{Historique des alarmes}}'
-  }).load(
-    'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin&eqLogic_id=' + eqLogicId
-  ).dialog('open')
+  $('#md_modal').dialog({ title: '{{Historique des alarmes}}' })
+  $('#md_modal').load(
+    'index.php?v=d&plugin=jeedilkamin&modal=modal.jeedilkamin&eqLogic_id=' + eqLogicId,
+    function () {
+      $('#md_modal').dialog('open')
+    }
+  )
 })
 
 /* Fonction permettant l'affichage des commandes dans l'équipement */
