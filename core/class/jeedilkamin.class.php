@@ -150,7 +150,6 @@ class jeedilkamin extends eqLogic {
       $this->createCmd('state', 'Etat', $countCmd++, 'info', 'binary');
       $this->createCmd('set_power_on', 'Power ON', $countCmd++, 'action', 'other');
       $this->createCmd('set_power_off', 'Power OFF', $countCmd++, 'action', 'other');
-			$this->createCmd('state', 'Etat', $countCmd++, 'info', 'binary');
 			$this->createCmd('temperature', 'Température', $countCmd++, 'info', 'numeric', '°C');
 			$this->createCmd('alarm_type', 'Alarm', $countCmd++, 'info', 'numeric');
       $this->createCmd('phase', 'Phase', $countCmd++, 'info', 'string');
@@ -179,7 +178,7 @@ class jeedilkamin extends eqLogic {
       if (!is_object($cron)) {
           $cron = new cron();
           $cron->setClass('jeedilkamin');
-          $cron->setFunction('updatejeedilkaminData');
+          $cron->setFunction('updateJeedilkaminData');
           $cron->setOption(array('jeedilkamin_id' => intval($this->getId())));
       }
       $cron->setSchedule($this->getConfiguration('refreshCron', '*/5 * * * *'));
@@ -195,6 +194,10 @@ class jeedilkamin extends eqLogic {
   // Fonction exécutée automatiquement après la suppression de l'équipement
   public function postRemove() {
     log::add('jeedilkamin', 'debug', 'Post Remove');
+    $cron = cron::byClassAndFunction('jeedilkamin', 'updateJeedilkaminData', array('jeedilkamin_id' => intval($this->getId())));
+    if (is_object($cron)) {
+      $cron->remove();
+    }
   }
 
   public static function deamon_info() {
@@ -253,7 +256,7 @@ class jeedilkamin extends eqLogic {
         sleep(1);
         $i++;
     }
-    if ($i >= 30) {
+    if ($i >= 20) {
         log::add(__CLASS__, 'error', __('Impossible de lancer le démon, vérifiez le log', __FILE__), 'unableStartDeamon');
         return false;
     }
@@ -303,6 +306,11 @@ class jeedilkamin extends eqLogic {
   public function encrypt() {
     $this->setConfiguration('password', utils::encrypt($this->getConfiguration('password')));
   }
+  */
+
+  /*
+  * Chiffrement automatique du mot de passe en configuration plugin
+  public static $_encryptConfigKey = array('password');
   */
 
   /*

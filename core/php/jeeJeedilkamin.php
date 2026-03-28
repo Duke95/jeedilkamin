@@ -44,8 +44,8 @@ function createCmd($eqLogic, $commandName, $commandDescription, $order, $type, $
             $cmd->setTemplate($template[0], $template[1]);
         }
         $cmd->save();
-        return $cmd->getId();
         log::add('jeedilkamin', 'debug', 'Add command '. $cmd->getName() . ' (LogicalId : ' . $cmd->getLogicalId() . ')');
+        return $cmd->getId();
     }
 }
 

@@ -264,7 +264,6 @@ logging.info('PID file: %s', _pidfile)
 logging.info('Apikey: %s', _apikey)
 logging.info('Device: %s', _device)
 logging.info('Email: %s', _email)
-logging.debug('Password: %s', _password) 
 
 signal.signal(signal.SIGINT, handler)
 signal.signal(signal.SIGTERM, handler)
