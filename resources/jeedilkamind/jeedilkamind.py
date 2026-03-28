@@ -141,6 +141,8 @@ def _get_refresh_interval(json_info: dict) -> int:
             return _REFRESH_INTERVAL_TRANSITION
     except Exception:
         return _REFRESH_INTERVAL_ON
+
+_PHASE_MAP = {
     # (stove_state, operational_phase, sub_operational_phase): label
     # stove_state 1 = Eteint / Refroidissement
     (1, 0, 0): 'Eteint',
