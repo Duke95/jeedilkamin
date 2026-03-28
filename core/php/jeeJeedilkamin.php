@@ -125,8 +125,12 @@ function createAllCommands($eqLogic, $infos)
         createCmd($eqLogic, $logicalId, $label, $order++, 'action', $subType, $linkedId, $min, $max);
     }
 
-    // Puissance manuelle : min=1 (P1), max=5 (P5) — constante du protocole Edilkamin
-    createCmd($eqLogic, 'manual_power', 'Puissance utilisateur', $order++, 'action', 'slider', '', 1, 5);
+    // Puissance manuelle : min=1, max déduit du nombre de niveaux P dans cat_parameters
+    $maxPower = 1;
+    while (isset($infos['nvm']['cat_parameters']['fan_activation_enviroment_1_p' . ($maxPower + 1)])) {
+        $maxPower++;
+    }
+    createCmd($eqLogic, 'manual_power', 'Puissance utilisateur', $order++, 'action', 'slider', '', 1, $maxPower);
 
     log::add('jeedilkamin', 'info', 'Commandes créées pour eqLogic ' . $eqLogic->getId());
 }
