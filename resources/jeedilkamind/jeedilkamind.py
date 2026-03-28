@@ -243,14 +243,22 @@ def _handle_post_save(message, forJeedom):
     forJeedom['refresh_infos'] = refresh(json.loads(info))
 
 def _handle_power_on(message, forJeedom):
+    global _last_refresh, _current_interval
     _run(edilkamin.set_power_on(_token, message['macaddress']))
     _wait_for_state(message['macaddress'], forJeedom,
                     {'stove_state': 6, 'operational_phase': 2, 'sub_operational_phase': 2})
+    # Recalculer l'intervalle après la fin de la phase d'allumage
+    _current_interval = _REFRESH_INTERVAL_ON
+    _last_refresh = time.time()
 
 def _handle_power_off(message, forJeedom):
+    global _last_refresh, _current_interval
     _run(edilkamin.set_power_off(_token, message['macaddress']))
     _wait_for_state(message['macaddress'], forJeedom,
                     {'stove_state': 1, 'operational_phase': 0, 'sub_operational_phase': 0})
+    # Poêle éteint → repasser à l'intervalle long
+    _current_interval = _REFRESH_INTERVAL_OFF
+    _last_refresh = time.time()
 
 def _handle_fan_speed(message, forJeedom):
     info = device_info_json(message['macaddress'])
@@ -337,16 +345,15 @@ def read_socket():
 
 
 def listen():
+    global _last_refresh, _current_interval
     my_jeedom_socket.open()
-    last_refresh = 0
-    current_interval = _REFRESH_INTERVAL_ON
     try:
         while 1:
             time.sleep(0.5)
             read_socket()
             now = time.time()
-            if now - last_refresh >= current_interval and _known_devices:
-                logging.debug('Auto-refresh (interval=%ds)', current_interval)
+            if now - _last_refresh >= _current_interval and _known_devices:
+                logging.debug('Auto-refresh (interval=%ds)', _current_interval)
                 for macaddress in list(_known_devices.keys()):
                     try:
                         forJeedom = {'mac_address': macaddress}
@@ -355,11 +362,11 @@ def listen():
                         forJeedom['infos'] = info
                         forJeedom['refresh_infos'] = refresh(json_info)
                         my_jeedom_com.send_change_immediate(forJeedom)
-                        current_interval = _get_refresh_interval(json_info)
-                        logging.debug('Prochain refresh dans %ds', current_interval)
+                        _current_interval = _get_refresh_interval(json_info)
+                        logging.debug('Prochain refresh dans %ds', _current_interval)
                     except Exception as e:
                         logging.error('Auto-refresh error for %s: %s', macaddress, e)
-                last_refresh = now
+                _last_refresh = now
     except KeyboardInterrupt:
         shutdown()
 
@@ -399,6 +406,8 @@ _callback = ''
 _cycle = 0.3
 _refresh_interval = 300  # secondes, modifiable via --refreshinterval
 _known_devices = {}  # {macaddress: eqlogicid}
+_last_refresh = 0
+_current_interval = _REFRESH_INTERVAL_ON
 
 parser = argparse.ArgumentParser(description='Desmond Daemon for Jeedom plugin')
 parser.add_argument("--device", help="Device", type=str)
