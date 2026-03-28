@@ -106,13 +106,17 @@ function createAllCommands($eqLogic, $infos)
     // Fans dynamiques selon le nombre déclaré dans le JSON
     $nbFans = $infos['nvm']['installer_parameters']['fans_number'] ?? 0;
     for ($i = 1; $i <= $nbFans; $i++) {
-        // min/max issus du JSON : fan_X_max_level dans oem_parameters
-        // fan_1_max_level existe, fan_2+ n'ont pas de champ dédié → fallback sur fan_1_max_level
-        $maxSpeed = $infos['nvm']['oem_parameters']['fan_' . $i . '_max_level']
+        // fan_X_max_level est un index 0-based → max réel = valeur + 1
+        $maxLevel = $infos['nvm']['oem_parameters']['fan_' . $i . '_max_level']
                  ?? $infos['nvm']['oem_parameters']['fan_1_max_level']
-                 ?? 5;
+                 ?? 4;
+        $maxSpeed = $maxLevel + 1;
+        // fan_engine_type 2 = ventilateur principal (min=1, ne peut pas s'arrêter)
+        // fan_engine_type 4 = ventilateur canalisé (min=0, peut être coupé)
+        $engineType = $infos['nvm']['oem_parameters']['fan_' . $i . '_engine_type'] ?? 4;
+        $minSpeed = ($engineType == 2) ? 1 : 0;
         $fanInfoId = createCmd($eqLogic, 'fan' . $i, 'Fan ' . $i, $order++, 'info', 'numeric', '', 0, 0, '', 0);
-        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, 0, $maxSpeed);
+        createCmd($eqLogic, 'fan_speed' . $i, 'Vitesse fan ' . $i, $order++, 'action', 'slider', $fanInfoId, $minSpeed, $maxSpeed);
     }
 
     // Commandes action fixes
