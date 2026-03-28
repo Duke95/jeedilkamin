@@ -9,7 +9,8 @@
   "requests" : {},
   "aiohttp" : {},
   "PyJWT" : {},
-  "pyserial" : {}
+  "pyserial" : {},
+  "pyudev" : {}
   },
   "npm": {
   },
