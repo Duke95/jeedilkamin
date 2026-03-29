@@ -336,6 +336,7 @@ def read_socket():
 
         # Pour postSave, infos déjà remplies par le handler
         if 'infos' not in forJeedom:
+            logging.debug("TEST DUKE")
             time.sleep(1.0)
             info = device_info(message['macaddress'])
             json_info = json.loads(info)
@@ -359,6 +360,7 @@ def listen():
             now = time.time()
             if now - _last_refresh >= _current_interval and _known_devices:
                 logging.debug('Auto-refresh (interval=%ds)', _current_interval)
+                
                 for macaddress in list(_known_devices.keys()):
                     try:
                         forJeedom = {'mac_address': macaddress}
