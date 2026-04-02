@@ -290,9 +290,14 @@ def _handle_relax_mode(message, forJeedom):
 def _handle_target_temperature(message, forJeedom):
     _run(edilkamin.set_target_temperature(_token, message['macaddress'], int(message['target_temperature'])))
 
+def _handle_update_data(message, forJeedom):
+    """Handler pour le cron Jeedom — mémorise la MAC et laisse read_socket faire le refresh."""
+    _known_devices[message['macaddress']] = message.get('eqlogicid')
+
 _ACTION_HANDLERS = {
-    'postSave':             _handle_post_save,
-    'set_power_on':         _handle_power_on,
+    'postSave':               _handle_post_save,
+    'updateJeedilkaminData':  _handle_update_data,
+    'set_power_on':           _handle_power_on,
     'set_power_off':        _handle_power_off,
     'set_auto_on':          _handle_auto_mode,
     'set_auto_off':         _handle_auto_mode,
@@ -336,7 +341,6 @@ def read_socket():
 
         # Pour postSave, infos déjà remplies par le handler
         if 'infos' not in forJeedom:
-            logging.debug("TEST DUKE")
             time.sleep(1.0)
             info = device_info(message['macaddress'])
             json_info = json.loads(info)
