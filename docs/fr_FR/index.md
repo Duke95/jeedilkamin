@@ -45,7 +45,7 @@ Depuis la page du plugin, cliquez sur **Ajouter** pour créer un nouvel équipem
 | Commande | Description |
 |---|---|
 | Etat | Poêle allumé (1) ou éteint (0) |
-| Phase | Phase de fonctionnement en cours |
+| Phase | Phase de fonctionnement en cours (voir tableau ci-dessous) |
 | Puissance | Niveau de puissance actuel (P1→P5) |
 | Alarme | Code de la dernière alarme |
 | Température ambiante | Température mesurée par le poêle |
@@ -63,10 +63,50 @@ Depuis la page du plugin, cliquez sur **Ajouter** pour créer un nouvel équipem
 | Chrono actif | Mode chrono actif |
 | Standby actif | Mode veille actif |
 | Airkare actif | Mode Airkare actif |
-| Signal WiFi | Qualité du signal WiFi |
 | Nb allumages | Nombre total d'allumages |
 | Dernier rafraîchissement | Date et heure du dernier rafraîchissement |
 | Fan X | Vitesse actuelle du ventilateur X |
+
+### Phases de fonctionnement
+
+La commande "Phase" affiche l'état détaillé du poêle :
+
+| Phase | Description |
+|---|---|
+| Eteint | Poêle à l'arrêt |
+| Allumage : Nettoyage | Nettoyage du creuset avant allumage |
+| Allumage : Préchauffage | Préchauffage de la bougie d'allumage |
+| Allumage : Chargement pellets | Chargement des pellets dans le creuset |
+| Allumage : Attente flamme | Attente de la détection de flamme |
+| Allumage : Contrôle température fumée | Vérification que la flamme a pris |
+| Allumage : Contrôle dépassement température | Stabilisation avant fonctionnement |
+| Allumage : Warmup | Montée progressive en puissance |
+| Allumé | Fonctionnement stable |
+| Allumé : Montée en puissance | Augmentation de la puissance |
+| Allumé : Modulation | Régulation automatique |
+| Nettoyage en cours | Cycle de nettoyage automatique |
+| Refroidissement | Phase de refroidissement après extinction |
+| Alarme | Alarme active |
+| Nettoyage final | Nettoyage final avant arrêt complet |
+
+### Codes d'alarme
+
+| Code | Description |
+|---|---|
+| 1 | Entrée d'air insuffisante |
+| 2 | RPM ventilateur fumées incorrect |
+| 3 | Pas de flamme |
+| 4 | Échec allumage |
+| 5 | Capteur débit d'air défaillant |
+| 6 | Thermocouple défaillant |
+| 7 | Température fumées trop élevée |
+| 8 | Température poêle trop élevée |
+| 9 | Moto-réducteur défaillant |
+| 10 | Carte électronique trop chaude |
+| 11 | Pression cheminée |
+| 12-14 | Sonde température ambiante défaillante |
+| 20 | Triac moto-réducteur défaillant |
+| 21 | Coupure de courant |
 
 ### Actions
 
