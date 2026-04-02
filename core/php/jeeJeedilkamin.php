@@ -212,7 +212,8 @@ try {
             'total_counters'   => $infos['nvm']['total_counters']   ?? [],
             'service_counters' => $infos['nvm']['service_counters'] ?? [],
         ]));
-        $eqLogic->save();
+        // save(true) pour éviter de re-déclencher postSave → boucle infinie
+        $eqLogic->save(true);
     }
 
 } catch (Exception $e) {
